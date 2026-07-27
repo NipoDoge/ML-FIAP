@@ -1,23 +1,29 @@
 PYTHON ?= python3
 PIP ?= $(PYTHON) -m pip
+POETRY ?= $(shell if command -v poetry >/dev/null 2>&1; then command -v poetry; elif [ -x "$$HOME/.local/bin/poetry" ]; then printf "%s/.local/bin/poetry" "$$HOME"; else printf "poetry"; fi)
+POETRY_RUN := $(POETRY) run
 
 # Pacotes em ``src/``; testes importam ``main`` na raiz.
 export PYTHONPATH := $(abspath $(CURDIR)/src):$(abspath $(CURDIR))
 
-.PHONY: help install install-dev requirements lint lint-fix format test test-fast coverage run docker-up docker-down docker-fresh clean check check-rings check-rings-strict validate-platform validate-platform-infra
+.PHONY: help install install-dev install-tc02 requirements lock lock-check lint lint-fix format test test-fast coverage run docker-up docker-down docker-fresh clean check check-rings check-rings-strict tc02-repro tc02-validate tc02-promote tc02-up validate-platform validate-platform-infra
 
 help:
 	@echo "Alvos principais:"
-	@echo "  make install-dev   pip install -e \".[dev]\""
-	@echo "  make lint          ruff check (alinha com pyproject.toml)"
-	@echo "  make lint-fix      ruff check --fix"
-	@echo "  make format        black em src, tests, main e DAG"
-	@echo "  make test          pytest (cobertura conforme pyproject.toml)"
-	@echo "  make test-fast     pytest sem cobertura (mais rápido)"
-	@echo "  make coverage      mesmo fluxo de teste com relatórios de cobertura"
+	@echo "  make install       poetry install --only main"
+	@echo "  make install-dev   poetry install --with dev,tc02"
+	@echo "  make lock          poetry lock"
+	@echo "  make lock-check    poetry check --lock"
+	@echo "  make lint          poetry run ruff check"
+	@echo "  make lint-fix      poetry run ruff check --fix"
+	@echo "  make format        poetry run black em src, tests, main e DAG"
+	@echo "  make test          poetry run pytest (cobertura conforme pyproject.toml)"
+	@echo "  make test-fast     poetry run pytest sem cobertura (mais rápido)"
+	@echo "  make coverage      poetry run pytest com relatórios de cobertura"
 	@echo "  make check         lint + test-fast"
 	@echo "  make check-rings   docs Fase 0 + avisos de import entre anéis"
-	@echo "  make run           uvicorn local (porta 8000)"
+	@echo "  make run           poetry run uvicorn local (porta 8000)"
+	@echo "  make tc02-repro    poetry run dvc repro"
 	@echo "  make docker-up     docker compose up --build"
 	@echo "  make docker-down   docker compose down"
 	@echo "  make docker-fresh  down -v, prune cache/imagens locais, build --no-cache, up -d"
@@ -26,37 +32,45 @@ help:
 	@echo "  make clean         artefatos de build e caches locais"
 
 install:
-	$(PIP) install -e .
+	$(POETRY) install --only main
 
 install-dev:
-	$(PIP) install -e ".[dev]"
+	$(POETRY) install --with dev,tc02
+
+install-tc02: install-dev
 
 requirements:
 	$(PIP) install -r requirements.txt
 
+lock:
+	$(POETRY) lock
+
+lock-check:
+	$(POETRY) check --lock
+
 lint:
-	$(PYTHON) -m ruff check .
+	$(POETRY_RUN) ruff check .
 
 lint-fix:
-	$(PYTHON) -m ruff check --fix .
+	$(POETRY_RUN) ruff check --fix .
 
 format:
-	$(PYTHON) -m black src tests main.py airflow/dags
+	$(POETRY_RUN) black src tests main.py airflow/dags
 
 test:
-	$(PYTHON) -m pytest
+	$(POETRY_RUN) pytest
 
 test-fast:
-	$(PYTHON) -m pytest -q -o addopts=
+	$(POETRY_RUN) pytest -q -o addopts=
 
 coverage:
-	$(PYTHON) -m pytest --cov=. --cov-report=html --cov-report=term-missing
+	$(POETRY_RUN) pytest --cov=. --cov-report=html --cov-report=term-missing
 
 run:
-	$(PYTHON) -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	$(POETRY_RUN) uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 docker-up:
-	docker compose up -d
+	docker compose up -d --build
 
 docker-down:
 	docker compose down
@@ -71,13 +85,13 @@ docker-fresh:
 	@echo "Stack limpa e a subir. Acompanhe: docker compose ps"
 
 tc02-repro:
-	PYTHONPATH=src dvc repro
+	$(POETRY_RUN) dvc repro
 
 tc02-validate:
-	PYTHONPATH=src python3 scripts/validate_env.py
+	$(POETRY_RUN) python scripts/validate_env.py
 
 tc02-promote:
-	PYTHONPATH=src python3 scripts/ml/promote_registry.py
+	$(POETRY_RUN) python scripts/ml/promote_registry.py
 
 tc02-up:
 	docker compose up -d --build mlflow_server worker_recommendation
@@ -85,10 +99,10 @@ tc02-up:
 check: lint test-fast
 
 check-rings:
-	python3 scripts/check_ring_imports.py
+	$(POETRY_RUN) python scripts/check_ring_imports.py
 
 check-rings-strict:
-	python3 scripts/check_ring_imports.py --strict
+	$(POETRY_RUN) python scripts/check_ring_imports.py --strict
 
 validate-platform:
 	@test -n "$$VALIDATE_API_PASSWORD" || (echo "Defina VALIDATE_API_PASSWORD (senha do user seed em init_db/database.sql)"; exit 1)
