@@ -10,4 +10,4 @@ embedding_dim: 32
 n_epochs: 10
 batch_size: 512
 lr: 0.01
-mlflow_experiment: tc02_recommendation
+mlflow_experiment: tc02_recommendation_dvc

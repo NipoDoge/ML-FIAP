@@ -24,7 +24,8 @@
 #     mesmos binds em /var/www/ml_shared/... para promote/inferência verem os artefactos
 #     (caminhos na BD começam por /opt/airflow/ml_project/ e são remapados em código).
 #   - Postgres (db_processing): 3 bases — ``processing``, ``airflow``, ``mlflow``.
-#   - MLflow: metadados em Postgres ``mlflow``; artefactos em ``/mlflow/artifacts`` (bind ./src/artifacts/mlruns).
+#   - MLflow: metadados em Postgres ``mlflow``; artefactos servidos via ``mlflow-artifacts:/``
+#     e armazenados em ``/mlflow/artifacts`` (bind ./src/artifacts/mlruns).
 #   - API / Airflow / worker: MLFLOW_TRACKING_URI=http://mlflow_server:5000; MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts.
 #   - Recomendação (TC02): data/models/reports na raiz do repo montados em ML_PROJECT_ROOT
 #     (blocos reco-volumes abaixo). Worker HTTP integrado: worker_recommendation:8010.
@@ -207,7 +208,9 @@ services:
       --host 0.0.0.0
       --port 5000
       --backend-store-uri postgresql://${DATABASE_USER}:${DATABASE_PASS}@db_processing:5432/${MLFLOW_DATABASE_NAME:-mlflow}
-      --default-artifact-root /mlflow/artifacts
+      --default-artifact-root mlflow-artifacts:/
+      --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
     ports:
       - "5000:5000"
     volumes:

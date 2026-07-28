@@ -1,0 +1,114 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: DEBUG=false PYTHONPATH=src python -m 
+      domains.recommendation.stages.preprocess
+    deps:
+    - path: data/recommendation/raw/ratings.csv
+      hash: md5
+      md5: 325a6f09399d1c45671f187505e1a100
+      size: 2483723
+    - path: params.yaml
+      hash: md5
+      md5: c70e7b5c67570a4822d77e5fa3af265e
+      size: 226
+    - path: src/domains/recommendation/
+      hash: md5
+      md5: c39f3f9974293fe719a78dcabd448466.dir
+      size: 62027
+      nfiles: 30
+    outs:
+    - path: data/recommendation/processed/interactions.parquet
+      hash: md5
+      md5: ceaace7797abd6757e787660e14e1173
+      size: 842917
+  feature_eng:
+    cmd: DEBUG=false PYTHONPATH=src python -m 
+      domains.recommendation.stages.feature_eng
+    deps:
+    - path: data/recommendation/processed/interactions.parquet
+      hash: md5
+      md5: ceaace7797abd6757e787660e14e1173
+      size: 842917
+    - path: params.yaml
+      hash: md5
+      md5: c70e7b5c67570a4822d77e5fa3af265e
+      size: 226
+    - path: src/domains/recommendation/
+      hash: md5
+      md5: c39f3f9974293fe719a78dcabd448466.dir
+      size: 62027
+      nfiles: 30
+    outs:
+    - path: data/recommendation/features/test_truth.json
+      hash: md5
+      md5: 56ccd4be6535b42e8f09930e0d327a01
+      size: 9072
+    - path: data/recommendation/features/train.parquet
+      hash: md5
+      md5: 28198a3811b2abcac919a92a51d098e7
+      size: 267686
+  train:
+    cmd: DEBUG=false PYTHONPATH=src python -m 
+      domains.recommendation.stages.train
+    deps:
+    - path: data/recommendation/features/test_truth.json
+      hash: md5
+      md5: 56ccd4be6535b42e8f09930e0d327a01
+      size: 9072
+    - path: data/recommendation/features/train.parquet
+      hash: md5
+      md5: 28198a3811b2abcac919a92a51d098e7
+      size: 267686
+    - path: params.yaml
+      hash: md5
+      md5: c70e7b5c67570a4822d77e5fa3af265e
+      size: 226
+    - path: src/domains/recommendation/
+      hash: md5
+      md5: c39f3f9974293fe719a78dcabd448466.dir
+      size: 62027
+      nfiles: 30
+    outs:
+    - path: models/recommendation/torch_embedding.meta.json
+      hash: md5
+      md5: 131d52194638e8bb107c0451453dffb3
+      size: 210300
+    - path: models/recommendation/torch_embedding.pt
+      hash: md5
+      md5: be9235914073395882ab751e67695434
+      size: 1321416
+    - path: models/recommendation/train_metrics.json
+      hash: md5
+      md5: 7680eabd5d09fc3d51b924e000d06236
+      size: 674
+  evaluate:
+    cmd: DEBUG=false PYTHONPATH=src python -m 
+      domains.recommendation.stages.evaluate
+    deps:
+    - path: data/recommendation/features/test_truth.json
+      hash: md5
+      md5: 56ccd4be6535b42e8f09930e0d327a01
+      size: 9072
+    - path: models/recommendation/train_metrics.json
+      hash: md5
+      md5: 7680eabd5d09fc3d51b924e000d06236
+      size: 674
+    - path: params.yaml
+      hash: md5
+      md5: c70e7b5c67570a4822d77e5fa3af265e
+      size: 226
+    - path: src/domains/recommendation/
+      hash: md5
+      md5: c39f3f9974293fe719a78dcabd448466.dir
+      size: 62027
+      nfiles: 30
+    outs:
+    - path: models/recommendation/champion_manifest.json
+      hash: md5
+      md5: 5905659818ee2a6be86a2c3bdc3f116c
+      size: 195
+    - path: reports/recommendation/metrics.json
+      hash: md5
+      md5: 3bdd51a6543d315ba175661b1f647381
+      size: 985

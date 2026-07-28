@@ -1,14 +1,15 @@
 stages:
   preprocess:
-    cmd: PYTHONPATH=src python -m domains.recommendation.stages.preprocess
+    cmd: DEBUG=false PYTHONPATH=src python -m domains.recommendation.stages.preprocess
     deps:
+      - data/recommendation/raw/ratings.csv
       - src/domains/recommendation/
       - params.yaml
     outs:
       - data/recommendation/processed/interactions.parquet
 
   feature_eng:
-    cmd: PYTHONPATH=src python -m domains.recommendation.stages.feature_eng
+    cmd: DEBUG=false PYTHONPATH=src python -m domains.recommendation.stages.feature_eng
     deps:
       - data/recommendation/processed/interactions.parquet
       - src/domains/recommendation/
@@ -18,28 +19,26 @@ stages:
       - data/recommendation/features/test_truth.json
 
   train:
-    cmd: PYTHONPATH=src python -m domains.recommendation.stages.train
+    cmd: DEBUG=false PYTHONPATH=src python -m domains.recommendation.stages.train
     deps:
       - data/recommendation/features/train.parquet
       - data/recommendation/features/test_truth.json
       - src/domains/recommendation/
       - params.yaml
     outs:
-      - models/recommendation/train_metrics.json
       - models/recommendation/torch_embedding.pt
       - models/recommendation/torch_embedding.meta.json
     metrics:
       - models/recommendation/train_metrics.json
 
   evaluate:
-    cmd: PYTHONPATH=src python -m domains.recommendation.stages.evaluate
+    cmd: DEBUG=false PYTHONPATH=src python -m domains.recommendation.stages.evaluate
     deps:
       - models/recommendation/train_metrics.json
       - data/recommendation/features/test_truth.json
       - src/domains/recommendation/
       - params.yaml
+    outs:
+      - models/recommendation/champion_manifest.json
     metrics:
       - reports/recommendation/metrics.json
-    outs:
-      - reports/recommendation/metrics.json
-      - models/recommendation/champion_manifest.json
