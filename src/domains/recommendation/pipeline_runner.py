@@ -35,6 +35,7 @@ def _load_params(ctx: RunContext) -> dict[str, Any]:
         "embedding_dim": 32,
         "hidden_dim": 64,
         "dropout": 0.1,
+        "use_item_bias": True,
         "n_epochs": 10,
         "batch_size": 512,
         "lr": 0.01,
@@ -42,7 +43,7 @@ def _load_params(ctx: RunContext) -> dict[str, Any]:
         "validation_fraction": 0.1,
         "early_stopping_patience": 3,
         "early_stopping_min_delta": 1e-4,
-        "min_positive_rating": 0.0,
+        "min_positive_rating": 4.0,
         "champion_model": "torch_embedding",
         "mlflow_experiment": "tc02_recommendation",
     }
@@ -98,6 +99,8 @@ class RecommendationPipelineRunner(PipelineRunner):
         return out_path
 
     def feature_eng(self, data: Any, ctx: RunContext) -> dict[str, Path]:
+        params = _load_params(ctx)
+        min_positive_rating = float(params["min_positive_rating"])
         interactions_path = Path(data) if not isinstance(data, dict) else Path(data["interactions"])
         df = pd.read_parquet(interactions_path)
 
@@ -105,17 +108,30 @@ class RecommendationPipelineRunner(PipelineRunner):
         train_rows = []
         test_truth: dict[int, set[int]] = {}
         for user_id, group in df.groupby("user_id"):
-            items = group["item_id"].astype(int).tolist()
-            if len(items) < 2:
+            group = group.reset_index(drop=True)
+            positive_group = group[group["rating"].astype(float) >= min_positive_rating]
+            if len(group) < 2 or positive_group.empty:
                 train_rows.extend(
-                    {"user_id": int(user_id), "item_id": int(it), "rating": float(r)}
-                    for it, r in zip(items, group["rating"], strict=False)
+                    {
+                        "user_id": int(user_id),
+                        "item_id": int(row["item_id"]),
+                        "rating": float(row["rating"]),
+                    }
+                    for _, row in group.iterrows()
                 )
                 continue
-            test_item = items[-1]
-            test_truth[int(user_id)] = {test_item}
-            for it, r in zip(items[:-1], group["rating"].iloc[:-1], strict=False):
-                train_rows.append({"user_id": int(user_id), "item_id": int(it), "rating": float(r)})
+            test_idx = int(positive_group.index[-1])
+            test_truth[int(user_id)] = {int(group.loc[test_idx, "item_id"])}
+            for idx, row in group.iterrows():
+                if int(idx) == test_idx:
+                    continue
+                train_rows.append(
+                    {
+                        "user_id": int(user_id),
+                        "item_id": int(row["item_id"]),
+                        "rating": float(row["rating"]),
+                    }
+                )
 
         train_df = pd.DataFrame(train_rows)
         features_dir = _repo_path("data", "recommendation", "features")
@@ -152,6 +168,7 @@ class RecommendationPipelineRunner(PipelineRunner):
                 embedding_dim=params["embedding_dim"],
                 hidden_dim=params["hidden_dim"],
                 dropout=params["dropout"],
+                use_item_bias=params["use_item_bias"],
                 n_epochs=params["n_epochs"],
                 batch_size=params["batch_size"],
                 lr=params["lr"],
@@ -182,6 +199,7 @@ class RecommendationPipelineRunner(PipelineRunner):
                     "top_k": k,
                     "embedding_dim": params["embedding_dim"],
                     "hidden_dim": params["hidden_dim"],
+                    "use_item_bias": params["use_item_bias"],
                     "n_negatives": params["n_negatives"],
                     "min_positive_rating": params["min_positive_rating"],
                 },
@@ -244,6 +262,7 @@ class RecommendationPipelineRunner(PipelineRunner):
                     "random_state": params["random_state"],
                     "embedding_dim": params["embedding_dim"],
                     "hidden_dim": params["hidden_dim"],
+                    "use_item_bias": params["use_item_bias"],
                     "n_epochs": params["n_epochs"],
                     "n_negatives": params["n_negatives"],
                     "min_positive_rating": params["min_positive_rating"],

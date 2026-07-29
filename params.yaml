@@ -9,6 +9,7 @@ nmf_components: 32
 embedding_dim: 32
 hidden_dim: 64
 dropout: 0.1
+use_item_bias: true
 n_epochs: 10
 batch_size: 512
 lr: 0.01
@@ -16,6 +17,6 @@ n_negatives: 4
 validation_fraction: 0.1
 early_stopping_patience: 3
 early_stopping_min_delta: 0.0001
-min_positive_rating: 0.0
+min_positive_rating: 4.0
 champion_model: torch_embedding
 mlflow_experiment: tc02_recommendation_dvc

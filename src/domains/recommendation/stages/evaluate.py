@@ -27,6 +27,7 @@ def _candidate_manifest(name: str, params: dict) -> "ArtifactManifest":
             {
                 "embedding_dim": int(params.get("embedding_dim", 32)),
                 "hidden_dim": int(params.get("hidden_dim", 64)),
+                "use_item_bias": bool(params.get("use_item_bias", True)),
                 "n_negatives": int(params.get("n_negatives", 4)),
                 "min_positive_rating": float(params.get("min_positive_rating", 0.0)),
             }

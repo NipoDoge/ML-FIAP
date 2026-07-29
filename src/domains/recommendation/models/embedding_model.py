@@ -35,10 +35,12 @@ class _EmbeddingMlpModel(nn.Module):
         dim: int,
         hidden_dim: int,
         dropout: float,
+        use_item_bias: bool = False,
     ) -> None:
         super().__init__()
         self.user_emb = nn.Embedding(n_users, dim)
         self.item_emb = nn.Embedding(n_items, dim)
+        self.item_bias = nn.Embedding(n_items, 1) if use_item_bias else None
         self.scorer = nn.Sequential(
             nn.Linear(dim * 3, hidden_dim),
             nn.ReLU(),
@@ -47,12 +49,17 @@ class _EmbeddingMlpModel(nn.Module):
         )
         nn.init.normal_(self.user_emb.weight, std=0.01)
         nn.init.normal_(self.item_emb.weight, std=0.01)
+        if self.item_bias is not None:
+            nn.init.zeros_(self.item_bias.weight)
 
     def forward(self, user_idx: torch.Tensor, item_idx: torch.Tensor) -> torch.Tensor:
         user_vec = self.user_emb(user_idx)
         item_vec = self.item_emb(item_idx)
         features = torch.cat([user_vec, item_vec, user_vec * item_vec], dim=1)
-        return self.scorer(features).squeeze(-1)
+        score = self.scorer(features).squeeze(-1)
+        if self.item_bias is not None:
+            score = score + self.item_bias(item_idx).squeeze(-1)
+        return score
 
 
 class TorchEmbeddingRecommender:
@@ -72,6 +79,7 @@ class TorchEmbeddingRecommender:
         min_positive_rating: float = 0.0,
         hidden_dim: int = 64,
         dropout: float = 0.1,
+        use_item_bias: bool = True,
     ) -> None:
         self.embedding_dim = embedding_dim
         self.n_epochs = n_epochs
@@ -85,6 +93,7 @@ class TorchEmbeddingRecommender:
         self.min_positive_rating = min_positive_rating
         self.hidden_dim = hidden_dim
         self.dropout = min(max(dropout, 0.0), 0.8)
+        self.use_item_bias = use_item_bias
         self._user_map: dict[int, int] = {}
         self._item_map: dict[int, int] = {}
         self._reverse_items: dict[int, int] = {}
@@ -101,6 +110,7 @@ class TorchEmbeddingRecommender:
         rng = np.random.default_rng(self.random_state)
         self._index_catalog(train_df)
         positive_pairs = self._positive_pairs(train_df)
+        explicit_negative_pairs = self._explicit_negative_pairs(train_df)
         train_pairs, val_pairs = self._split_train_validation(positive_pairs, rng)
 
         model = _EmbeddingMlpModel(
@@ -109,6 +119,7 @@ class TorchEmbeddingRecommender:
             self.embedding_dim,
             self.hidden_dim,
             self.dropout,
+            self.use_item_bias,
         )
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
         loss_fn = nn.BCEWithLogitsLoss()
@@ -123,7 +134,7 @@ class TorchEmbeddingRecommender:
         epochs_without_gain = 0
 
         for epoch in range(1, self.n_epochs + 1):
-            train_tensors = self._build_labeled_tensors(train_pairs, rng)
+            train_tensors = self._build_labeled_tensors(train_pairs, rng, explicit_negative_pairs)
             train_loss = self._train_epoch(model, optimizer, loss_fn, train_tensors, epoch)
             val_loss = self._validation_loss(model, loss_fn, val_tensors) or train_loss
 
@@ -144,6 +155,7 @@ class TorchEmbeddingRecommender:
             "best_epoch": best_epoch,
             "best_val_loss": float(best_val_loss),
             "n_positive_interactions": int(len(positive_pairs)),
+            "n_explicit_negative_interactions": int(len(explicit_negative_pairs)),
             "n_train_interactions": int(len(train_pairs)),
             "n_validation_interactions": int(len(val_pairs)),
         }
@@ -162,9 +174,20 @@ class TorchEmbeddingRecommender:
     def _positive_pairs(self, train_df: pd.DataFrame) -> np.ndarray:
         filtered = train_df[train_df["rating"].astype(float) >= self.min_positive_rating]
         if filtered.empty:
-            filtered = train_df
-        user_idx = filtered["user_id"].astype(int).map(self._user_map).to_numpy(dtype=np.int64)
-        item_idx = filtered["item_id"].astype(int).map(self._item_map).to_numpy(dtype=np.int64)
+            raise ValueError(
+                f"Nenhuma interação positiva encontrada com rating >= {self.min_positive_rating}."
+            )
+        return self._pairs_from_frame(filtered)
+
+    def _explicit_negative_pairs(self, train_df: pd.DataFrame) -> np.ndarray:
+        filtered = train_df[train_df["rating"].astype(float) < self.min_positive_rating]
+        if filtered.empty:
+            return np.empty((0, 2), dtype=np.int64)
+        return self._pairs_from_frame(filtered)
+
+    def _pairs_from_frame(self, df: pd.DataFrame) -> np.ndarray:
+        user_idx = df["user_id"].astype(int).map(self._user_map).to_numpy(dtype=np.int64)
+        item_idx = df["item_id"].astype(int).map(self._item_map).to_numpy(dtype=np.int64)
         return np.column_stack([user_idx, item_idx])
 
     def _split_train_validation(
@@ -185,6 +208,7 @@ class TorchEmbeddingRecommender:
         self,
         positive_pairs: np.ndarray,
         rng: np.random.Generator,
+        explicit_negative_pairs: np.ndarray | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
         if len(positive_pairs) == 0:
             return None
@@ -196,6 +220,9 @@ class TorchEmbeddingRecommender:
             [self._sample_negative_item(int(user_idx), rng) for user_idx in neg_users],
             dtype=np.int64,
         )
+        if explicit_negative_pairs is not None and len(explicit_negative_pairs):
+            neg_users = np.concatenate([neg_users, explicit_negative_pairs[:, 0].astype(np.int64)])
+            neg_items = np.concatenate([neg_items, explicit_negative_pairs[:, 1].astype(np.int64)])
         users = np.concatenate([pos_users, neg_users])
         items = np.concatenate([pos_items, neg_items])
         labels = np.concatenate(
@@ -290,10 +317,11 @@ class TorchEmbeddingRecommender:
             raise RuntimeError("Modelo torch não treinado.")
         torch.save(self._model.state_dict(), prefix.with_suffix(".pt"))
         meta = {
-            "model_type": "embedding_mlp_bce",
+            "model_type": "embedding_mlp_bce_item_bias" if self.use_item_bias else "embedding_mlp_bce",
             "embedding_dim": self.embedding_dim,
             "hidden_dim": self.hidden_dim,
             "dropout": self.dropout,
+            "use_item_bias": self.use_item_bias,
             "n_negatives": self.n_negatives,
             "validation_fraction": self.validation_fraction,
             "early_stopping_patience": self.early_stopping_patience,
@@ -320,6 +348,7 @@ class TorchEmbeddingRecommender:
             early_stopping_patience=int(meta.get("early_stopping_patience", 3)),
             early_stopping_min_delta=float(meta.get("early_stopping_min_delta", 1e-4)),
             min_positive_rating=float(meta.get("min_positive_rating", 0.0)),
+            use_item_bias=bool(meta.get("use_item_bias", meta.get("model_type") == "embedding_mlp_bce_item_bias")),
         )
         obj._user_map = {int(k): int(v) for k, v in meta["user_map"].items()}
         obj._item_map = {int(k): int(v) for k, v in meta["item_map"].items()}
@@ -338,13 +367,18 @@ class TorchEmbeddingRecommender:
         return obj
 
     def _build_model_from_meta(self, meta: dict) -> nn.Module:
-        if meta.get("model_type") == "embedding_mlp_bce":
+        if meta.get("model_type") in {
+            "embedding_mlp_bce",
+            "embedding_mlp_ranking",
+            "embedding_mlp_bce_item_bias",
+        }:
             return _EmbeddingMlpModel(
                 len(self._user_map),
                 len(self._item_map),
                 self.embedding_dim,
                 self.hidden_dim,
                 self.dropout,
+                self.use_item_bias,
             )
         return _EmbeddingDotModel(len(self._user_map), len(self._item_map), self.embedding_dim)
 

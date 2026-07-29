@@ -102,6 +102,7 @@ def create_model(
             embedding_dim=int(kwargs.get("embedding_dim", 32)),
             hidden_dim=int(kwargs.get("hidden_dim", 64)),
             dropout=float(kwargs.get("dropout", 0.1)),
+            use_item_bias=bool(kwargs.get("use_item_bias", True)),
             n_epochs=int(kwargs.get("n_epochs", 10)),
             batch_size=int(kwargs.get("batch_size", 512)),
             lr=float(kwargs.get("lr", 0.01)),
