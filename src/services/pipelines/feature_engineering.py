@@ -41,6 +41,11 @@ from services.pipelines.fe_model_selection import normalize_optimization_metric,
 from services.utils import filename_with_suffix, log_training_csv_to_active_run
 from ml_core_ring.mlflow_setup import configure_mlflow_tracking, ensure_mlflow_experiment
 
+from services.pipelines.binary_decision_threshold import labels_from_probability_threshold
+
+if TYPE_CHECKING:
+    from services.pipelines.mlp_torch_tabular import TorchTabularMLPResult
+
 configure_mlflow_tracking()
 
 logger = logging.getLogger("ml.pipeline")
@@ -111,7 +116,7 @@ class FeatureEngineering:
         self.y_train: pd.Series | None = None
         self.y_test: pd.Series | None = None
         self.feature_names: list[str] = []
-        self.feature_groups: dict[str, list[str]] = {"binary": [], "continuous": [], "categorical": []}
+        self.feature_groups: dict[str, list[str]] | None = None
         self.k_features = 25
 
         self.trained_models: dict = {}
@@ -240,6 +245,9 @@ class FeatureEngineering:
         - categóricas: OneHotEncoder (+ imputação moda só se houver nulos)
         """
         groups = groups or self._classify_feature_columns(x_train)
+        if groups is None or not any(groups.values()):
+            groups = self._classify_feature_columns(x_train)
+
         binary_cols = groups["binary"]
         continuous_cols = groups["continuous"]
         categorical_cols = groups["categorical"]
@@ -987,7 +995,9 @@ class FeatureEngineering:
         """Pasta com comparação de modelos, resumo PyTorch, CSV pré-transform (pós-strategy) e pós-transform (entrada do modelo)."""
         bundle = self.fe_export_bundle_dir(joblib_path)
         os.makedirs(bundle, exist_ok=True)
-        _f = lambda n: filename_with_suffix(n, self._artifact_suffix)
+        
+        def _f(name: str) -> str:
+            return filename_with_suffix(name, self._artifact_suffix)
 
         if self.results_df is not None:
             self.results_df.to_csv(os.path.join(bundle, _f("model_selection_comparison.csv")), index=False)
