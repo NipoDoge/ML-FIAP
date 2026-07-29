@@ -33,9 +33,17 @@ def _load_params(ctx: RunContext) -> dict[str, Any]:
         "train_models": ["popularity", "nmf", "torch_embedding"],
         "nmf_components": 32,
         "embedding_dim": 32,
+        "hidden_dim": 64,
+        "dropout": 0.1,
         "n_epochs": 10,
         "batch_size": 512,
         "lr": 0.01,
+        "n_negatives": 4,
+        "validation_fraction": 0.1,
+        "early_stopping_patience": 3,
+        "early_stopping_min_delta": 1e-4,
+        "min_positive_rating": 0.0,
+        "champion_model": "torch_embedding",
         "mlflow_experiment": "tc02_recommendation",
     }
     merged = {**defaults, **ctx.params}
@@ -142,9 +150,16 @@ class RecommendationPipelineRunner(PipelineRunner):
                 random_state=params["random_state"],
                 nmf_components=params["nmf_components"],
                 embedding_dim=params["embedding_dim"],
+                hidden_dim=params["hidden_dim"],
+                dropout=params["dropout"],
                 n_epochs=params["n_epochs"],
                 batch_size=params["batch_size"],
                 lr=params["lr"],
+                n_negatives=params["n_negatives"],
+                validation_fraction=params["validation_fraction"],
+                early_stopping_patience=params["early_stopping_patience"],
+                early_stopping_min_delta=params["early_stopping_min_delta"],
+                min_positive_rating=params["min_positive_rating"],
             )
             model.fit(train_df)
             recommendations = {
@@ -162,7 +177,14 @@ class RecommendationPipelineRunner(PipelineRunner):
                 problem_type="recommendation",
                 engine="torch_embedding" if backend == "torch_embedding" else f"sklearn_{backend}",
                 artifacts=artifact_paths,
-                metadata={"backend": backend, "top_k": k},
+                metadata={
+                    "backend": backend,
+                    "top_k": k,
+                    "embedding_dim": params["embedding_dim"],
+                    "hidden_dim": params["hidden_dim"],
+                    "n_negatives": params["n_negatives"],
+                    "min_positive_rating": params["min_positive_rating"],
+                },
             )
             candidates.append(
                 ModelCandidate(
@@ -183,11 +205,23 @@ class RecommendationPipelineRunner(PipelineRunner):
     def evaluate(self, candidates: list[ModelCandidate], ctx: RunContext) -> ModelCandidate:
         if not candidates:
             raise RuntimeError("Nenhum candidato para avaliar.")
-        champion = max(candidates, key=lambda c: c.metrics.get("ndcg_at_k", 0.0))
+        params = _load_params(ctx)
+        metric_winner = max(candidates, key=lambda c: c.metrics.get("ndcg_at_k", 0.0))
+        champion_model = str(params.get("champion_model", "")).strip()
+        champion = next(
+            (c for c in candidates if c.name == champion_model or c.engine == champion_model),
+            metric_winner,
+        )
         reports_dir = _repo_path("reports", "recommendation")
         reports_dir.mkdir(parents=True, exist_ok=True)
         report = {
             "champion": champion.name,
+            "metric_winner": metric_winner.name,
+            "selection_reason": (
+                "champion_model configurado para produção"
+                if champion.name != metric_winner.name
+                else "melhor ndcg_at_k"
+            ),
             "metrics": champion.metrics,
             "all_models": {c.name: c.metrics for c in candidates},
         }
@@ -208,6 +242,11 @@ class RecommendationPipelineRunner(PipelineRunner):
                     "champion": champion.name,
                     "top_k": params["top_k"],
                     "random_state": params["random_state"],
+                    "embedding_dim": params["embedding_dim"],
+                    "hidden_dim": params["hidden_dim"],
+                    "n_epochs": params["n_epochs"],
+                    "n_negatives": params["n_negatives"],
+                    "min_positive_rating": params["min_positive_rating"],
                 }
             )
             mlflow.log_metrics({k: float(v) for k, v in champion.metrics.items()})

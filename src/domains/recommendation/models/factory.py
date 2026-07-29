@@ -100,9 +100,16 @@ def create_model(
 
         return TorchEmbeddingRecommender(
             embedding_dim=int(kwargs.get("embedding_dim", 32)),
+            hidden_dim=int(kwargs.get("hidden_dim", 64)),
+            dropout=float(kwargs.get("dropout", 0.1)),
             n_epochs=int(kwargs.get("n_epochs", 10)),
             batch_size=int(kwargs.get("batch_size", 512)),
             lr=float(kwargs.get("lr", 0.01)),
             random_state=int(kwargs.get("random_state", 42)),
+            n_negatives=int(kwargs.get("n_negatives", 4)),
+            validation_fraction=float(kwargs.get("validation_fraction", 0.1)),
+            early_stopping_patience=int(kwargs.get("early_stopping_patience", 3)),
+            early_stopping_min_delta=float(kwargs.get("early_stopping_min_delta", 1e-4)),
+            min_positive_rating=float(kwargs.get("min_positive_rating", 0.0)),
         )
     raise ValueError(f"Backend de recomendação desconhecido: {backend!r}")

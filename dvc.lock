@@ -10,35 +10,35 @@ stages:
       size: 2483723
     - path: params.yaml
       hash: md5
-      md5: c70e7b5c67570a4822d77e5fa3af265e
-      size: 226
+      md5: d2f7116e8dba3d7f5d80c46732f2a1ef
+      size: 411
     - path: src/domains/recommendation/
       hash: md5
-      md5: e8244b924d2bb4f64728456bff3d1013.dir
-      size: 61948
-      nfiles: 30
+      md5: 02f44491858de25042dc3ed23467b7dc.dir
+      size: 135744
+      nfiles: 34
     outs:
     - path: data/recommendation/processed/interactions.parquet
       hash: md5
-      md5: 0bd71f689a4ac61f4edd2e260d7ee72f
-      size: 842915
+      md5: 3aa4f60e308328eee115bfd30f7ad653
+      size: 842917
   feature_eng:
     cmd: DEBUG=false PYTHONPATH=src python -m 
       domains.recommendation.stages.feature_eng
     deps:
     - path: data/recommendation/processed/interactions.parquet
       hash: md5
-      md5: 0bd71f689a4ac61f4edd2e260d7ee72f
-      size: 842915
+      md5: 3aa4f60e308328eee115bfd30f7ad653
+      size: 842917
     - path: params.yaml
       hash: md5
-      md5: c70e7b5c67570a4822d77e5fa3af265e
-      size: 226
+      md5: d2f7116e8dba3d7f5d80c46732f2a1ef
+      size: 411
     - path: src/domains/recommendation/
       hash: md5
-      md5: e8244b924d2bb4f64728456bff3d1013.dir
-      size: 61948
-      nfiles: 30
+      md5: 02f44491858de25042dc3ed23467b7dc.dir
+      size: 135744
+      nfiles: 34
     outs:
     - path: data/recommendation/features/test_truth.json
       hash: md5
@@ -62,26 +62,26 @@ stages:
       size: 267686
     - path: params.yaml
       hash: md5
-      md5: c70e7b5c67570a4822d77e5fa3af265e
-      size: 226
+      md5: d2f7116e8dba3d7f5d80c46732f2a1ef
+      size: 411
     - path: src/domains/recommendation/
       hash: md5
-      md5: e8244b924d2bb4f64728456bff3d1013.dir
-      size: 61948
-      nfiles: 30
+      md5: 02f44491858de25042dc3ed23467b7dc.dir
+      size: 135744
+      nfiles: 34
     outs:
     - path: models/recommendation/torch_embedding.meta.json
       hash: md5
-      md5: 131d52194638e8bb107c0451453dffb3
-      size: 210300
+      md5: c75781dddc2ef5d50f041c598b1968b4
+      size: 820294
     - path: models/recommendation/torch_embedding.pt
       hash: md5
-      md5: be9235914073395882ab751e67695434
-      size: 1321416
+      md5: a22e8dc7c4b392aa680b567dc7f0815c
+      size: 1347736
     - path: models/recommendation/train_metrics.json
       hash: md5
-      md5: 7680eabd5d09fc3d51b924e000d06236
-      size: 674
+      md5: 12bb101cc4bdb5ef63569fac3b15fffe
+      size: 672
   evaluate:
     cmd: DEBUG=false PYTHONPATH=src python -m 
       domains.recommendation.stages.evaluate
@@ -92,23 +92,23 @@ stages:
       size: 9072
     - path: models/recommendation/train_metrics.json
       hash: md5
-      md5: 7680eabd5d09fc3d51b924e000d06236
-      size: 674
+      md5: 12bb101cc4bdb5ef63569fac3b15fffe
+      size: 672
     - path: params.yaml
       hash: md5
-      md5: c70e7b5c67570a4822d77e5fa3af265e
-      size: 226
+      md5: d2f7116e8dba3d7f5d80c46732f2a1ef
+      size: 411
     - path: src/domains/recommendation/
       hash: md5
-      md5: e8244b924d2bb4f64728456bff3d1013.dir
-      size: 61948
-      nfiles: 30
+      md5: 02f44491858de25042dc3ed23467b7dc.dir
+      size: 135744
+      nfiles: 34
     outs:
     - path: models/recommendation/champion_manifest.json
       hash: md5
-      md5: 5905659818ee2a6be86a2c3bdc3f116c
-      size: 195
+      md5: a1cef004b9dfe9a05933f82b385491f2
+      size: 370
     - path: reports/recommendation/metrics.json
       hash: md5
-      md5: 3bdd51a6543d315ba175661b1f647381
-      size: 985
+      md5: a296e8d13c5aa1e50f88b603bf9e583b
+      size: 1097
