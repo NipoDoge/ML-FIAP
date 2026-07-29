@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +90,6 @@ class RecommendationPipelineRunner(PipelineRunner):
         return out_path
 
     def feature_eng(self, data: Any, ctx: RunContext) -> dict[str, Path]:
-        params = _load_params(ctx)
         interactions_path = Path(data) if not isinstance(data, dict) else Path(data["interactions"])
         df = pd.read_parquet(interactions_path)
 

@@ -7,7 +7,6 @@ import re
 import shutil
 from datetime import datetime
 
-import joblib
 import numpy as np
 import pandas as pd
 from fastapi import UploadFile
@@ -840,12 +839,6 @@ async def run_feature_engineering(
         await session.refresh(merged)
 
     return merged, zip_path
-
-
-# Airflow (worker) e API (FastAPI) montam o **mesmo volume** ``ml_shared`` em mount points
-# diferentes (``/opt/airflow/ml_project`` vs ``/var/www/ml_shared``). Caminhos gravados pelo
-# Airflow precisam ser remapeados em runtime para ler do volume dentro da API.
-from core.ml.paths import resolve_shared_artifact_path as _resolve_shared_artifact_path
 
 
 async def predict_for_domain(

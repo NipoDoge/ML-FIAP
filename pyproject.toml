@@ -241,5 +241,9 @@ exclude = [
 [tool.ruff.lint]
 
 [tool.ruff.lint.per-file-ignores]
-# `sys.path` antes dos imports da app.
+# Bootstraps/shims que precisam preparar `sys.path` ou emitir aviso antes dos imports.
+"airflow/dags/ml_training_dispatch.py" = ["E402"]
 "main.py" = ["E402"]
+"scripts/ml/promote_registry.py" = ["E402"]
+"src/core/ml/__init__.py" = ["E402"]
+"worker_recommendation.py" = ["E402"]

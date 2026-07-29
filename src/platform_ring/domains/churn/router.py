@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Any, Literal
+from typing import Literal
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
