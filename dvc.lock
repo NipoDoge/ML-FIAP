@@ -10,8 +10,8 @@ stages:
       size: 2483723
     - path: params.yaml
       hash: md5
-      md5: 18ece2b9d0d85703b598b2e2ab0db5b2
-      size: 431
+      md5: 7c1e31ddfaa9ba01b4d5cc9784b7d6fd
+      size: 432
     - path: src/domains/recommendation/
       hash: md5
       md5: d4a65e25b1f8476340f9ff7170981195.dir
@@ -32,8 +32,8 @@ stages:
       size: 842917
     - path: params.yaml
       hash: md5
-      md5: 18ece2b9d0d85703b598b2e2ab0db5b2
-      size: 431
+      md5: 7c1e31ddfaa9ba01b4d5cc9784b7d6fd
+      size: 432
     - path: src/domains/recommendation/
       hash: md5
       md5: d4a65e25b1f8476340f9ff7170981195.dir
@@ -62,8 +62,8 @@ stages:
       size: 267710
     - path: params.yaml
       hash: md5
-      md5: 18ece2b9d0d85703b598b2e2ab0db5b2
-      size: 431
+      md5: 7c1e31ddfaa9ba01b4d5cc9784b7d6fd
+      size: 432
     - path: src/domains/recommendation/
       hash: md5
       md5: d4a65e25b1f8476340f9ff7170981195.dir
@@ -72,16 +72,16 @@ stages:
     outs:
     - path: models/recommendation/torch_embedding.meta.json
       hash: md5
-      md5: 61643089629e555de28755dc8a702540
-      size: 820568
+      md5: 6337fa845d532e2f0e9cbcb8d2498e9b
+      size: 820569
     - path: models/recommendation/torch_embedding.pt
       hash: md5
-      md5: 0c474b92d182e4fee08be930299fa975
-      size: 1387804
+      md5: 44b5f086cde8534e1960a0b2c006496c
+      size: 1412892
     - path: models/recommendation/train_metrics.json
       hash: md5
-      md5: b6bafd53e8b97621298a80236dfb6640
-      size: 668
+      md5: 811c05b2ac6b619a474fd83db4d7f2f9
+      size: 667
   evaluate:
     cmd: DEBUG=false PYTHONPATH=src python -m 
       domains.recommendation.stages.evaluate
@@ -92,12 +92,12 @@ stages:
       size: 9031
     - path: models/recommendation/train_metrics.json
       hash: md5
-      md5: b6bafd53e8b97621298a80236dfb6640
-      size: 668
+      md5: 811c05b2ac6b619a474fd83db4d7f2f9
+      size: 667
     - path: params.yaml
       hash: md5
-      md5: 18ece2b9d0d85703b598b2e2ab0db5b2
-      size: 431
+      md5: 7c1e31ddfaa9ba01b4d5cc9784b7d6fd
+      size: 432
     - path: src/domains/recommendation/
       hash: md5
       md5: d4a65e25b1f8476340f9ff7170981195.dir
@@ -106,9 +106,9 @@ stages:
     outs:
     - path: models/recommendation/champion_manifest.json
       hash: md5
-      md5: 52e5cd338223bc695f737e2cc4dfea0e
-      size: 397
+      md5: 9602e7ac034dd908518ad2728f5d4083
+      size: 398
     - path: reports/recommendation/metrics.json
       hash: md5
-      md5: b0795a9bd241f290047cef06a39d716e
-      size: 1091
+      md5: 7f1f546c8ca6c946f3eea1b93b9fe9cc
+      size: 1089
