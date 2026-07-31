@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from core.configs import settings
+from ml_core_ring.paths import resolve_shared_artifact_path
 from models.deployed_models import DeployedModels
 from models.pipeline_runs import PipelineRuns
 from services.utils import utcnow
@@ -125,10 +126,8 @@ async def promote_pipeline_run(
         raise ValueError(
             f"Domínio '{domain}' não coincide com o objective do run ('{run.objective}')."
         )
-    from services.processor.processor_service import _resolve_shared_artifact_path
-
     if pt == "feature_engineering":
-        local_model_path = _resolve_shared_artifact_path(run.model_path)
+        local_model_path = resolve_shared_artifact_path(run.model_path)
         if not local_model_path or not os.path.exists(local_model_path):
             raise ValueError(
                 "Artefato do modelo não encontrado. "
@@ -143,7 +142,7 @@ async def promote_pipeline_run(
         prefix = run.model_path or (run.metrics or {}).get("artifact_paths", {}).get("prefix")
         if not prefix:
             raise ValueError("Run de recomendação sem prefix de artefacto (model_path ou metrics.artifact_paths).")
-        resolved = _resolve_shared_artifact_path(str(prefix))
+        resolved = resolve_shared_artifact_path(str(prefix))
         if not resolved:
             raise ValueError(f"Prefix de recomendação inválido: {prefix!r}")
         base = Path(resolved)
