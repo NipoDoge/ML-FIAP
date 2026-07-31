@@ -31,7 +31,10 @@ def task_validate_tabular_input(**context) -> None:
     conf = merge_run_conf(
         context,
         variable_key="ml_training_dispatch_conf",
-        fallback_keys=(("objective", "ml_training_objective"), ("csv_path", "ml_training_csv_path")),
+        fallback_keys=(
+            ("objective", "ml_training_objective"),
+            ("csv_path", "ml_training_csv_path"),
+        ),
     )
     from core.configs import settings as svc_settings
 
@@ -147,7 +150,9 @@ def task_run_baseline(**context) -> None:
             os.path.join(pipeline.snapshot_path, pipeline.contract_sample_name)
         )
     else:
-        manifest_rel = os.path.join(pipeline.path_data_preprocessed, pipeline.contract_manifest_name)
+        manifest_rel = os.path.join(
+            pipeline.path_data_preprocessed, pipeline.contract_manifest_name
+        )
         sample_rel = os.path.join(pipeline.path_data_preprocessed, pipeline.contract_sample_name)
         baseline_manifest_path = resolve_ml_artifact_path(manifest_rel)
         baseline_sample_csv_path = resolve_ml_artifact_path(sample_rel)
@@ -155,7 +160,9 @@ def task_run_baseline(**context) -> None:
     if not os.path.isfile(baseline_manifest_path):
         raise FileNotFoundError(f"Manifest do baseline não encontrado: {baseline_manifest_path}")
     if not os.path.isfile(baseline_sample_csv_path):
-        raise FileNotFoundError(f"CSV estável do baseline não encontrado: {baseline_sample_csv_path}")
+        raise FileNotFoundError(
+            f"CSV estável do baseline não encontrado: {baseline_sample_csv_path}"
+        )
 
     br_id = run_async(
         persist_airflow_baseline_run(

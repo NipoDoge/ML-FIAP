@@ -559,6 +559,10 @@ Model Card completo: [`MODEL_CARD_RECOMMENDATION.md`](MODEL_CARD_RECOMMENDATION.
 | Baselines | Popularity, NMF |
 | Métricas | Hit Rate@K, Precision@K, Recall@K, NDCG@K, MAP@K |
 
+**Seleção atual:** `nmf_sklearn` vence em NDCG@K no snapshot offline, mas o campeão
+servido é `torch_embedding` por `champion_model` para cumprir o requisito neural PyTorch
+do TC02. O trade-off está documentado no Model Card completo.
+
 **Uso pretendido:** recomendar top-K itens para usuários conhecidos e demonstrar o ciclo MLOps do TC02.
 
 **Limitações:** cold-start → popularidade; split temporal por utilizador; MovieLens ≠ catálogo e-commerce real; sem diversidade/novidade como objetivo explícito.

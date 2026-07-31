@@ -54,7 +54,9 @@ class RecommendationTrainSyncResponse(BaseModel):
     status: str = "completed"
 
 
-@router.post("/predict", status_code=status.HTTP_200_OK, response_model=platform_schemas.PredictResponse)
+@router.post(
+    "/predict", status_code=status.HTTP_200_OK, response_model=platform_schemas.PredictResponse
+)
 async def recommendation_predict(
     payload: RecommendationFeaturesInput,
     db: AsyncSession = Depends(get_session),
@@ -65,7 +67,11 @@ async def recommendation_predict(
     return await predict_for_domain_route(db, domain=DOMAIN, features=features, user=user_logged)
 
 
-@router.post("/admin/promote", status_code=status.HTTP_201_CREATED, response_model=platform_schemas.DeployedModelResponse)
+@router.post(
+    "/admin/promote",
+    status_code=status.HTTP_201_CREATED,
+    response_model=platform_schemas.DeployedModelResponse,
+)
 async def recommendation_promote(
     db: AsyncSession = Depends(get_session),
     admin: users_models = Depends(require_admin),
@@ -103,7 +109,11 @@ async def recommendation_deployment_history(
     return await deployment_history(db, domain=DOMAIN)
 
 
-@router.post("/admin/rollback", status_code=status.HTTP_200_OK, response_model=platform_schemas.DeployedModelResponse)
+@router.post(
+    "/admin/rollback",
+    status_code=status.HTTP_200_OK,
+    response_model=platform_schemas.DeployedModelResponse,
+)
 async def recommendation_rollback(
     db: AsyncSession = Depends(get_session),
     admin: users_models = Depends(require_admin),
@@ -190,7 +200,9 @@ async def recommendation_train_sync(
         data = train_recommendation_sync(user_id=admin.id, params=params, domain=DOMAIN)
         return RecommendationTrainSyncResponse(**data)
     except RuntimeError as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

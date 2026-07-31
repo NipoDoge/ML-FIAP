@@ -14,7 +14,9 @@ from ml_core_ring.dispatch_params import flatten_dispatch_train_params
 
 
 def _worker_url() -> str:
-    return (settings.worker_recommendation_url or os.environ.get("WORKER_RECOMMENDATION_URL", "")).strip()
+    return (
+        settings.worker_recommendation_url or os.environ.get("WORKER_RECOMMENDATION_URL", "")
+    ).strip()
 
 
 def train_recommendation_sync(

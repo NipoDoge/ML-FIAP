@@ -173,7 +173,11 @@ def train_eval_mlp_binary_tabular(
         else:
             patience_left -= 1
             if patience_left <= 0:
-                logger.info("MLP early stopping na época %s (melhor val_loss na época %s).", epoch + 1, best_epoch)
+                logger.info(
+                    "MLP early stopping na época %s (melhor val_loss na época %s).",
+                    epoch + 1,
+                    best_epoch,
+                )
                 break
 
     if best_state is None:
@@ -214,12 +218,16 @@ def _validate_xy(X: np.ndarray, y: np.ndarray, name: str) -> None:
         raise ValueError(f"X_{name} deve ser 2D; recebido shape {X.shape}.")
     yv = np.asarray(y).astype(np.int64).ravel()
     if len(yv) != X.shape[0]:
-        raise ValueError(f"y_{name} length ({len(yv)}) não bate com X_{name}.shape[0] ({X.shape[0]}).")
+        raise ValueError(
+            f"y_{name} length ({len(yv)}) não bate com X_{name}.shape[0] ({X.shape[0]})."
+        )
     if set(np.unique(yv)) - {0, 1}:
         raise ValueError(f"y_{name} deve conter apenas 0 e 1.")
 
 
-def _classification_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray) -> dict[str, float]:
+def _classification_metrics(
+    y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray
+) -> dict[str, float]:
     zd = {"zero_division": 0}
     out = {
         "accuracy": float(accuracy_score(y_true, y_pred)),

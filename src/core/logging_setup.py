@@ -11,6 +11,7 @@ Regras:
 - Logger `ml.pipeline`: idem — propagate=True garante stdout + arquivo por run.
 - Uvicorn já escreve em stdout nativamente; não reconfigurar seus loggers.
 """
+
 from __future__ import annotations
 
 import logging
@@ -30,13 +31,16 @@ def setup_root_logging() -> None:
     root = logging.getLogger()
 
     already_has_stream = any(
-        isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) in (sys.stdout, sys.stderr)
+        isinstance(h, logging.StreamHandler)
+        and getattr(h, "stream", None) in (sys.stdout, sys.stderr)
         for h in root.handlers
     )
 
     if not already_has_stream:
         handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s"))
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+        )
         handler.setLevel(settings.get_log_level())
         root.addHandler(handler)
 

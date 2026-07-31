@@ -65,7 +65,9 @@ def prepare_fe_bundle_baseline_tree(
     graphs_dir = baseline_manifest.get("graphs_dir")
     if graphs_dir and os.path.isdir(os.path.abspath(graphs_dir)):
         for name in os.listdir(os.path.abspath(graphs_dir)):
-            copy_if_exists(os.path.join(os.path.abspath(graphs_dir), name), os.path.join(b_out, "graphs"))
+            copy_if_exists(
+                os.path.join(os.path.abspath(graphs_dir), name), os.path.join(b_out, "graphs")
+            )
 
 
 def finalize_fe_bundle_pipeline_outputs(run_root: str, pipeline: Any) -> None:
@@ -160,7 +162,9 @@ def log_fe_bundle_zip_to_mlflow_run(
         experiment_name = f"{objective}_feature_engineering"
         exp = mlflow.get_experiment_by_name(experiment_name)
         if exp is None:
-            logger.warning("Experimento MLflow '%s' inexistente — ZIP não anexado.", experiment_name)
+            logger.warning(
+                "Experimento MLflow '%s' inexistente — ZIP não anexado.", experiment_name
+            )
             return None
         mlflow.set_experiment(experiment_name)
         with mlflow.start_run(run_id=mlflow_run_id):

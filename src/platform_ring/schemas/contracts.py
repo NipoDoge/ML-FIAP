@@ -37,7 +37,9 @@ class MetricSnapshot(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    accuracy: Optional[float] = Field(default=None, description="Acurácia no conjunto de teste do run.")
+    accuracy: Optional[float] = Field(
+        default=None, description="Acurácia no conjunto de teste do run."
+    )
     precision: Optional[float] = None
     recall: Optional[float] = None
     f1: Optional[float] = None
@@ -56,17 +58,25 @@ class ServedModelPredict(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     inference_backend: str = Field(..., description="`sklearn` ou `mlp`.")
-    predict_model_key: str = Field(..., description="Identificador lógico (ex.: sklearn_pipeline, pytorch_mlp).")
+    predict_model_key: str = Field(
+        ..., description="Identificador lógico (ex.: sklearn_pipeline, pytorch_mlp)."
+    )
     label: str = Field(default="Modelo efectivamente usado neste `/predict`")
-    name: str = Field(..., description="Nome legível do modelo promovido (linha do comparativo ou inferido).")
-    origin: str = Field(..., description="Origem no comparativo de treino (pré/pós-tuning, MLP, etc.).")
+    name: str = Field(
+        ..., description="Nome legível do modelo promovido (linha do comparativo ou inferido)."
+    )
+    origin: str = Field(
+        ..., description="Origem no comparativo de treino (pré/pós-tuning, MLP, etc.)."
+    )
 
 
 class TrainingSelectionSummaryPredict(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     optimization_metric: Optional[str] = None
-    best_cv_score: Optional[float] = Field(default=None, description="Melhor média de CV na seleção interna.")
+    best_cv_score: Optional[float] = Field(
+        default=None, description="Melhor média de CV na seleção interna."
+    )
     classification_decision_threshold_for_holdout_metrics: Optional[float] = Field(
         default=None,
         description="Threshold usado nas métricas de holdout registadas para o modelo FE servido.",

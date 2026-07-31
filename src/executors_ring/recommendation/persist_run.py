@@ -35,7 +35,9 @@ async def persist_recommendation_run(
 ) -> int:
     """Grava run de recomendação concluído (pipeline_type=recommendation)."""
     if result.run_result is None:
-        raise ValueError("TrainBackendResult.run_result é obrigatório para persistência de recomendação.")
+        raise ValueError(
+            "TrainBackendResult.run_result é obrigatório para persistência de recomendação."
+        )
 
     manifest = result.run_result.manifest
     metrics: dict[str, Any] = dict(result.metrics or {})

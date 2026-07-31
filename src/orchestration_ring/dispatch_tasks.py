@@ -23,7 +23,10 @@ def task_validate_dispatch(**context) -> str:
     conf = merge_run_conf(
         context,
         variable_key="ml_training_dispatch_conf",
-        fallback_keys=(("objective", "ml_training_objective"), ("csv_path", "ml_training_csv_path")),
+        fallback_keys=(
+            ("objective", "ml_training_objective"),
+            ("csv_path", "ml_training_csv_path"),
+        ),
     )
     route = validate_dispatch_conf(conf)
     domain = resolve_domain(conf)

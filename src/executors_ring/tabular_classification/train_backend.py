@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from ml_core_ring.train_backend import TrainBackendResult, TrainRequestContext, register_train_backend
+from ml_core_ring.train_backend import (
+    TrainBackendResult,
+    TrainRequestContext,
+    register_train_backend,
+)
 
 from executors_ring.tabular_classification.runner import run_tabular_pipeline
 

@@ -139,7 +139,9 @@ class RecommendationPipelineRunner(PipelineRunner):
         train_path = features_dir / "train.parquet"
         test_truth_path = features_dir / "test_truth.json"
         train_df.to_parquet(train_path, index=False)
-        test_truth_path.write_text(json.dumps({str(k): list(v) for k, v in test_truth.items()}), encoding="utf-8")
+        test_truth_path.write_text(
+            json.dumps({str(k): list(v) for k, v in test_truth.items()}), encoding="utf-8"
+        )
         logger.info("Feature eng: train=%s users_test=%s", len(train_df), len(test_truth))
         return {
             "train": train_path,
@@ -153,7 +155,9 @@ class RecommendationPipelineRunner(PipelineRunner):
         train_path = Path(bundle["train"])
         test_truth_path = Path(bundle["test_truth"])
         train_df = pd.read_parquet(train_path)
-        test_truth = {int(k): set(map(int, v)) for k, v in json.loads(test_truth_path.read_text()).items()}
+        test_truth = {
+            int(k): set(map(int, v)) for k, v in json.loads(test_truth_path.read_text()).items()
+        }
         k = int(params["top_k"])
 
         candidates: list[ModelCandidate] = []
@@ -180,8 +184,7 @@ class RecommendationPipelineRunner(PipelineRunner):
             )
             model.fit(train_df)
             recommendations = {
-                user: model.recommend(user, k, exclude_items=set())
-                for user in test_truth
+                user: model.recommend(user, k, exclude_items=set()) for user in test_truth
             }
             metrics = aggregate_ranking_metrics(recommendations, test_truth, k)
             prefix = models_dir / backend
@@ -246,7 +249,9 @@ class RecommendationPipelineRunner(PipelineRunner):
         (reports_dir / "metrics.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         manifest_path = _repo_path("models", "recommendation", "champion_manifest.json")
         champion.manifest.to_json_file(manifest_path)
-        logger.info("Campeão: %s | ndcg@k=%.4f", champion.name, champion.metrics.get("ndcg_at_k", 0))
+        logger.info(
+            "Campeão: %s | ndcg@k=%.4f", champion.name, champion.metrics.get("ndcg_at_k", 0)
+        )
         return champion
 
     def log_mlflow(self, champion: ModelCandidate, ctx: RunContext) -> str | None:

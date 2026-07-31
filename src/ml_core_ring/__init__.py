@@ -3,7 +3,12 @@
 from ml_core_ring import engines  # noqa: F401 — registra ENGINE_REGISTRY
 from ml_core_ring.artifact_manifest import ArtifactManifest
 from ml_core_ring.domain_plugin import DOMAIN_REGISTRY, DomainPlugin, get_domain, register_domain
-from ml_core_ring.inference_engine import ENGINE_REGISTRY, InferenceEngine, get_engine, register_engine
+from ml_core_ring.inference_engine import (
+    ENGINE_REGISTRY,
+    InferenceEngine,
+    get_engine,
+    register_engine,
+)
 from ml_core_ring.orchestration_hooks import run_training_for_domain
 from ml_core_ring.pipeline_runner import (
     RUNNER_REGISTRY,

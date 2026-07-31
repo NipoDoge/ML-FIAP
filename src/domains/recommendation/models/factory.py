@@ -13,7 +13,9 @@ class RecommenderModel(Protocol):
 
     def fit(self, train_df: pd.DataFrame) -> None: ...
 
-    def recommend(self, user_id: int, n_items: int, exclude_items: set[int] | None = None) -> list[int]: ...
+    def recommend(
+        self, user_id: int, n_items: int, exclude_items: set[int] | None = None
+    ) -> list[int]: ...
 
 
 class PopularityBaseline:
@@ -26,7 +28,9 @@ class PopularityBaseline:
         counts = train_df.groupby("item_id").size().sort_values(ascending=False)
         self._popular_items = [int(i) for i in counts.index.tolist()]
 
-    def recommend(self, user_id: int, n_items: int, exclude_items: set[int] | None = None) -> list[int]:
+    def recommend(
+        self, user_id: int, n_items: int, exclude_items: set[int] | None = None
+    ) -> list[int]:
         exclude = exclude_items or set()
         out: list[int] = []
         for item in self._popular_items:
@@ -65,9 +69,13 @@ class NmfBaseline:
         self._item_ids = [int(c) for c in pivot.columns.tolist()]
         counts = train_df.groupby("item_id").size().sort_values(ascending=False)
         self._popular_items = [int(i) for i in counts.index.tolist()]
-        self._user_items = train_df.groupby("user_id")["item_id"].apply(lambda s: set(map(int, s))).to_dict()
+        self._user_items = (
+            train_df.groupby("user_id")["item_id"].apply(lambda s: set(map(int, s))).to_dict()
+        )
 
-    def recommend(self, user_id: int, n_items: int, exclude_items: set[int] | None = None) -> list[int]:
+    def recommend(
+        self, user_id: int, n_items: int, exclude_items: set[int] | None = None
+    ) -> list[int]:
         exclude = exclude_items or set()
         seen = self._user_items.get(user_id, set()) | exclude
         if user_id in self._user_index:

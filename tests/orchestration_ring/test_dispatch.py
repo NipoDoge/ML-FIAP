@@ -5,7 +5,11 @@ from __future__ import annotations
 import domains  # noqa: F401
 import pytest
 
-from orchestration_ring.dispatch import resolve_domain, training_route_for_domain, validate_dispatch_conf
+from orchestration_ring.dispatch import (
+    resolve_domain,
+    training_route_for_domain,
+    validate_dispatch_conf,
+)
 
 
 def test_resolve_domain_prefers_domain_key():

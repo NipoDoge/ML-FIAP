@@ -33,6 +33,7 @@ def to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     dt_utc = dt.astimezone(pytz.UTC).replace(tzinfo=None)
     return dt_utc
 
+
 def utcnow() -> datetime:
     return datetime.now(pytz.UTC).replace(tzinfo=None)
 

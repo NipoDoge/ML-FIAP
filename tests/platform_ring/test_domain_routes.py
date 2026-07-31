@@ -6,7 +6,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CHURN_ROUTER = (ROOT / "src/platform_ring/domains/churn/router.py").read_text(encoding="utf-8")
-RECO_ROUTER = (ROOT / "src/platform_ring/domains/recommendation/router.py").read_text(encoding="utf-8")
+RECO_ROUTER = (ROOT / "src/platform_ring/domains/recommendation/router.py").read_text(
+    encoding="utf-8"
+)
 API = (ROOT / "src/api/v1/api.py").read_text(encoding="utf-8")
 
 

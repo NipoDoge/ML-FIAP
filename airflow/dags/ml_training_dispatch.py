@@ -20,6 +20,7 @@ Recomendação::
 
   {"domain": "recommendation", "top_k": 10, "user_id": 2}
 """
+
 from __future__ import annotations
 
 import os

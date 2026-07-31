@@ -1,5 +1,6 @@
-FROM ghcr.io/mlflow/mlflow:v2.22.0
+FROM ghcr.io/mlflow/mlflow:v3.10.1
 
 # Backend store PostgreSQL (bases airflow / processing / mlflow no db_processing).
-# Cliente API usa mlflow 3.x (aliases); servidor 2.22+ expõe set_registered_model_alias.
+# API/worker tambem usam mlflow==3.10.1; manter cliente e servidor alinhados evita
+# chamadas a endpoints inexistentes em versoes antigas (ex.: logged-models).
 RUN pip install --no-cache-dir psycopg2-binary

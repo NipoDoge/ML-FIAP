@@ -29,7 +29,9 @@ def test_legacy_fe_backend_executes_when_csv_path(mock_run):
     )
     backend = LegacyFeTrainBackend()
     result = backend.run_train(
-        TrainRequestContext(domain="churn", params={"csv_path": "/tmp/data.csv", "objective": "churn"})
+        TrainRequestContext(
+            domain="churn", params={"csv_path": "/tmp/data.csv", "objective": "churn"}
+        )
     )
     mock_run.assert_called_once()
     assert result.status == "completed"

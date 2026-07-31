@@ -17,6 +17,7 @@ from typing import Any
 
 from core.configs import settings
 
+
 class _PipelineContextFormatter(logging.Formatter):
     """Prefixa cada linha com run_id, objective e pipeline_type."""
 

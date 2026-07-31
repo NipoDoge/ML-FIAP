@@ -35,7 +35,7 @@ from services.utils import filename_with_suffix, log_training_csv_to_active_run
 load_dotenv()
 configure_mlflow_tracking()
 
-#Enviroments
+# Enviroments
 ppath_data = settings.path_data
 ppath_data_preprocessed = settings.path_data_preprocessed
 ppath_model = settings.path_model
@@ -46,8 +46,9 @@ prandom_state = settings.random_state
 
 logger = logging.getLogger("ml.pipeline")
 pmsg_raise = "Pipeline interrompido"
-pagora = datetime.now().strftime('%Y%m%d_%H%M%S')
+pagora = datetime.now().strftime("%Y%m%d_%H%M%S")
 psnapshot_path = os.path.join(settings.path_data, settings.path_logs, pagora)
+
 
 class Baseline:
     """
@@ -71,6 +72,7 @@ class Baseline:
     - Modelo gerado serve como referência mínima; comparar sempre com o
       pipeline de Feature Engineering antes de promover para produção.
     """
+
     def __init__(
         self,
         pobjective,
@@ -117,9 +119,11 @@ class Baseline:
         self._explicit_csv_path = os.path.abspath(csv_path) if csv_path else None
         self._artifact_suffix = (artifact_name_suffix or "").strip()
         self.contract_input_name = filename_with_suffix("input.csv", self._artifact_suffix)
-        self.contract_sample_name = filename_with_suffix("baseline_sample.csv", self._artifact_suffix)
+        self.contract_sample_name = filename_with_suffix(
+            "baseline_sample.csv", self._artifact_suffix
+        )
         self.contract_manifest_name = filename_with_suffix("manifest.json", self._artifact_suffix)
-        
+
         if class_labels is not None:
             self.label_neg, self.label_pos = class_labels
         else:
@@ -170,7 +174,7 @@ class Baseline:
             f"baseline_model_{self.objective}_{self.now}.joblib", self._artifact_suffix
         )
         return os.path.join(self.path_model, name)
-    
+
     def load_data(self):
         """
         Carregamento dos dados, passo 1.
@@ -189,27 +193,26 @@ class Baseline:
         logger.info(f"Arquivo CSV (rota explícita): {self.current_csv_path}")
         self.data = pd.read_csv(self.current_csv_path)
         self.target = self.data.columns.to_list().pop()
-        
-        
+
         logger.debug(f"Dataset carregado {self.data.shape}")
         logger.debug(f"5 primeiras linhas {self.data.head(5)}")
-        
+
     def summary_overview(self):
         """
         Visão geral do dataset inicial, passo 2
         """
-        
+
         logger.info("Informações gerais do dataset:\n")
         logger.debug(self.data.info())
         logger.info("Colunas presentes no dataset:\n")
         logger.debug(self.data.columns)
         logger.info("Estatísticas inciiais do dataset:\n")
         logger.debug(self.data.describe())
-        
+
     # ------------------------------------------------------
     # EDA - Análise exploratória de dados
     # ------------------------------------------------------
-    
+
     def analyze_convert_columns_to_numeric(
         self,
         df: pd.DataFrame,
@@ -227,26 +230,28 @@ class Baseline:
 
         """
         threshold = self.threshold_numeric_coercion if threshold is None else threshold
-        columns = ['Coluna', 'Taxa_numerica', 'N_unicos', 'Exemplos', 'Recomenda_converter']
+        columns = ["Coluna", "Taxa_numerica", "N_unicos", "Exemplos", "Recomenda_converter"]
         rows = []
 
-        for col in df.select_dtypes(include=['object']).columns:
+        for col in df.select_dtypes(include=["object"]).columns:
             serie = df[col]
             preenchidos = int(serie.notna().sum())
 
             normalized = serie.map(self.normalize_values_by_column)
-            converted = pd.to_numeric(normalized, errors='coerce')
+            converted = pd.to_numeric(normalized, errors="coerce")
             convertidos = int(converted.notna().sum())
 
             taxa = round(convertidos / preenchidos, 2) if preenchidos else 0.0
 
-            rows.append({
-                'Coluna': col,
-                'Taxa_numerica': taxa,
-                'N_unicos': int(serie.nunique(dropna=True)),
-                'Exemplos': list(serie.dropna().unique()[:3]),
-                'Recomenda_converter': taxa >= threshold,
-            })
+            rows.append(
+                {
+                    "Coluna": col,
+                    "Taxa_numerica": taxa,
+                    "N_unicos": int(serie.nunique(dropna=True)),
+                    "Exemplos": list(serie.dropna().unique()[:3]),
+                    "Recomenda_converter": taxa >= threshold,
+                }
+            )
 
             logger.debug(
                 f"[object->numeric] col={col} taxa={taxa} "
@@ -257,7 +262,7 @@ class Baseline:
         report = pd.DataFrame(rows, columns=columns)
         if report.empty:
             return report
-        return report.sort_values(by='Taxa_numerica', ascending=False, ignore_index=True)
+        return report.sort_values(by="Taxa_numerica", ascending=False, ignore_index=True)
 
     @staticmethod
     def normalize_values_by_column(x):
@@ -280,16 +285,16 @@ class Baseline:
         if x == "":
             return None
 
-        x = re.sub(r'[^\d,.-]', '', x)
+        x = re.sub(r"[^\d,.-]", "", x)
 
-        if ',' in x and '.' in x:
-            x = x.replace('.', '').replace(',', '.')
-        elif ',' in x:
-            x = x.replace(',', '.')
-        elif '.' in x:
-            partes = x.split('.')
+        if "," in x and "." in x:
+            x = x.replace(".", "").replace(",", ".")
+        elif "," in x:
+            x = x.replace(",", ".")
+        elif "." in x:
+            partes = x.split(".")
             if len(partes[-1]) == 3:
-                x = x.replace('.', '')
+                x = x.replace(".", "")
 
         try:
             return float(x)
@@ -308,7 +313,7 @@ class Baseline:
         if relatorio.empty:
             return df
 
-        colunas = relatorio.loc[relatorio['Recomenda_converter'], 'Coluna'].tolist()
+        colunas = relatorio.loc[relatorio["Recomenda_converter"], "Coluna"].tolist()
         if not colunas:
             return df
 
@@ -316,12 +321,12 @@ class Baseline:
         for col in colunas:
             dtype_antes = df[col].dtype
             normalized = df[col].map(self.normalize_values_by_column)
-            numeric = pd.to_numeric(normalized, errors='coerce')
+            numeric = pd.to_numeric(normalized, errors="coerce")
 
             non_null = numeric.dropna()
             is_integer_like = bool(len(non_null) and (non_null % 1 == 0).all())
 
-            df[col] = numeric.astype('Int64') if is_integer_like else numeric
+            df[col] = numeric.astype("Int64") if is_integer_like else numeric
 
             nan_originais = int(df[col].isna().sum())
             logger.info(
@@ -335,34 +340,38 @@ class Baseline:
         """
         Inicialmente como terceiro passo, identificar os missings values
         """
-        
+
         logger.info("Inicializando a identificação dos missings values")
-        
+
         if self.target not in self.data.columns:
             logger.error("A Coluna target não esta presente na fonte de dados")
             raise ValueError(self.msg_raise)
-        
+
         if self.data[self.target].isnull().any():
             null_count = self.data[self.target].isnull().sum()
-            logger.error(f"Valores nulos ou faltantes foram encontrados na coluna target {null_count}")
+            logger.error(
+                f"Valores nulos ou faltantes foram encontrados na coluna target {null_count}"
+            )
             raise ValueError(self.msg_raise)
-        
+
         report_convertion = self.analyze_convert_columns_to_numeric(self.data)
         logger.info(f"Relatório de conversão para numérico:\n{report_convertion}")
 
         if not report_convertion.empty:
             gr.build_report(
                 g_type=1,  # BARH
-                x_data=report_convertion['Coluna'],
-                y_data=report_convertion['Taxa_numerica'] * 100,
+                x_data=report_convertion["Coluna"],
+                y_data=report_convertion["Taxa_numerica"] * 100,
                 title="Distribuição de conversão por coluna",
                 xlabel="Porcentagem (%)",
-                filename=filename_with_suffix(f"convert_object_to_numeric_{self.now}.png", self._artifact_suffix),
+                filename=filename_with_suffix(
+                    f"convert_object_to_numeric_{self.now}.png", self._artifact_suffix
+                ),
                 color="skyblue",
             )
 
         convertiveis = (
-            report_convertion[report_convertion['Recomenda_converter']]
+            report_convertion[report_convertion["Recomenda_converter"]]
             if not report_convertion.empty
             else report_convertion
         )
@@ -373,35 +382,37 @@ class Baseline:
                 f"(taxa >= {self.threshold_numeric_coercion}): "
                 f"{convertiveis['Coluna'].tolist()}"
             )
-            self.data = self.coerce_object_columns_to_numeric(
-                self.data, report_convertion
-            )
-            logger.info(
-                "Coerção aplicada. Refinamentos por coluna serão feitos na etapa de FE."
-            )
+            self.data = self.coerce_object_columns_to_numeric(self.data, report_convertion)
+            logger.info("Coerção aplicada. Refinamentos por coluna serão feitos na etapa de FE.")
 
-        missing = pd.DataFrame({
-            "Coluna" : self.data.columns,
-            "Missing_count" : self.data.isnull().sum(),
-            "Missing_percentage" : ((self.data.isnull().sum() / len(self.data))*100).round(2)
-        })
-        
-        missing = missing[missing["Missing_count"]>0].sort_values(by='Missing_percentage',ascending=False)
-        
-        if len(missing)==0:
+        missing = pd.DataFrame(
+            {
+                "Coluna": self.data.columns,
+                "Missing_count": self.data.isnull().sum(),
+                "Missing_percentage": ((self.data.isnull().sum() / len(self.data)) * 100).round(2),
+            }
+        )
+
+        missing = missing[missing["Missing_count"] > 0].sort_values(
+            by="Missing_percentage", ascending=False
+        )
+
+        if len(missing) == 0:
             logger.info("Dataset não apresentou missing values")
         else:
             logger.debug(f"Missing values identificados na fonte de dados: {missing}")
             gr.build_report(
-            g_type=1, # BARH
-            x_data=missing['Coluna'],
-            y_data=missing['Missing_percentage'],
-            title="Distribuição de Missing Values por Coluna",
-            xlabel="Porcentagem (%)",
-            filename=filename_with_suffix(f"missing_values_{self.now}.png", self._artifact_suffix),
-            color="skyblue"
+                g_type=1,  # BARH
+                x_data=missing["Coluna"],
+                y_data=missing["Missing_percentage"],
+                title="Distribuição de Missing Values por Coluna",
+                xlabel="Porcentagem (%)",
+                filename=filename_with_suffix(
+                    f"missing_values_{self.now}.png", self._artifact_suffix
+                ),
+                color="skyblue",
             )
-            
+
     def pre_processor_churn(self):
         """
         Ajustes específicos do *churn*: mapeia Yes/No e variantes para 0/1,
@@ -431,37 +442,37 @@ class Baseline:
 
         self.data = df
 
-            
     def target_analysis(self):
         """
         Neste passo 4, analisamos a fonte de dados identificando a variável target
         """
-        
+
         logger.info("Iniciando a análise da target")
 
-        self.data.rename(columns={self.target:'target'}, inplace=True)
+        self.data.rename(columns={self.target: "target"}, inplace=True)
         logger.info("Variável target definida")
-        
+
         logger.info("Convertendo variável target para binário")
-        
+
         le = LabelEncoder()
-        self.data['target'] = le.fit_transform(self.data['target'].astype(str))
+        self.data["target"] = le.fit_transform(self.data["target"].astype(str))
         logger.info(f"Target codificada: {dict(zip(le.classes_, le.transform(le.classes_)))}")
-        
-        if self.data['target'].isnull().any():
-            null_count = self.data['target'].isnull().sum()
-            logger.error(f"Valores nulos ou faltantes foram encontrados na coluna target {null_count}")
+
+        if self.data["target"].isnull().any():
+            null_count = self.data["target"].isnull().sum()
+            logger.error(
+                f"Valores nulos ou faltantes foram encontrados na coluna target {null_count}"
+            )
             raise ValueError(self.msg_raise)
-        
+
         logger.info("Iniciando analise de balancemanto da variável target")
-        
-        self.data['target'] = self.data['target'].astype(int)
-        self.data['target'] = np.where(self.data['target']>0,1,0)
-        
-        
-        target_counts = self.data['target'].value_counts()
-        target_percentages = self.data['target'].value_counts(normalize=True) * 100
-        
+
+        self.data["target"] = self.data["target"].astype(int)
+        self.data["target"] = np.where(self.data["target"] > 0, 1, 0)
+
+        target_counts = self.data["target"].value_counts()
+        target_percentages = self.data["target"].value_counts(normalize=True) * 100
+
         logger.info(f"Contagem\n {target_counts}")
         logger.info("\nPercentual:")
         for idx, pct in target_percentages.items():
@@ -473,8 +484,10 @@ class Baseline:
             x_data=target_counts.values,
             labels=[f"{self.label_neg} (0)", f"{self.label_pos} (1)"],
             title="Proporção da Variável Target",
-            filename=filename_with_suffix(f"target_distribution_pie_{self.now}.png", self._artifact_suffix),
-            color="coral"
+            filename=filename_with_suffix(
+                f"target_distribution_pie_{self.now}.png", self._artifact_suffix
+            ),
+            color="coral",
         )
         gr.build_report(
             g_type=2,
@@ -482,13 +495,15 @@ class Baseline:
             y_data=target_counts.values,
             title="Distribuição Absoluta da Target",
             ylabel="Quantidade",
-            filename=filename_with_suffix(f"target_distribution_bar_{self.now}.png", self._artifact_suffix),
-            color="skyblue"
+            filename=filename_with_suffix(
+                f"target_distribution_bar_{self.now}.png", self._artifact_suffix
+            ),
+            color="skyblue",
         )
-            
-        self.ratio = target_counts.min()/target_counts.max()
+
+        self.ratio = target_counts.min() / target_counts.max()
         logger.info(f"\n Ratio de Balancemanto: {self.ratio:.2f}")
-        
+
         if self.ratio < 0.5:
             logger.warning(
                 "Dataset desbalanceado (ratio=%.2f). "
@@ -498,7 +513,7 @@ class Baseline:
             )
         else:
             logger.info("✓ Dataset razoavelmente balanceado.")
-            
+
     def view_data(self):
         """
         Amostra CSV + EDA churn via :class:`core.graphs.Graphs` (padrão do projeto).
@@ -506,7 +521,8 @@ class Baseline:
         logger.info("Iniciando visualização dos dados...")
         os.makedirs(self.path_graphs, exist_ok=True)
         sample_path = os.path.join(
-            self.path_graphs, filename_with_suffix(f"data_view_{self.now}.csv", self._artifact_suffix)
+            self.path_graphs,
+            filename_with_suffix(f"data_view_{self.now}.csv", self._artifact_suffix),
         )
         try:
             self.data.head(5).to_csv(sample_path, index=False)
@@ -531,21 +547,22 @@ class Baseline:
         Passo 5, identificar outliers se houverem.
         """
         logger.info("Iniciando análise de outliers...")
-        
+
         numeric_cols = self.data.select_dtypes(include=[np.number]).columns.tolist()
-        if 'target' in numeric_cols:
-            numeric_cols.remove('target')
-               
+        if "target" in numeric_cols:
+            numeric_cols.remove("target")
+
         gr.build_outliers_report(
-            data=self.data, 
-            numeric_cols=numeric_cols, 
-            filename=filename_with_suffix(f"outliers_boxplot_{self.now}.png", self._artifact_suffix)
+            data=self.data,
+            numeric_cols=numeric_cols,
+            filename=filename_with_suffix(
+                f"outliers_boxplot_{self.now}.png", self._artifact_suffix
+            ),
         )
-            
-       
+
     # ------------------------------------------------------
     # Data Preparation
-    # ------------------------------------------------------   
+    # ------------------------------------------------------
 
     @staticmethod
     def _is_binary_column(series: pd.Series) -> bool:
@@ -730,12 +747,14 @@ class Baseline:
 
             x_tr = preprocess.fit_transform(self.x_train)
             classifier.fit(x_tr, self.y_train)
-            self.model = SkPipeline(
-                [("preprocess", preprocess), ("classifier", classifier)]
-            )
+            self.model = SkPipeline([("preprocess", preprocess), ("classifier", classifier)])
 
-            y_pred_train = labels_from_probability_threshold(self.model, self.x_train, self.decision_threshold)
-            y_pred_test = labels_from_probability_threshold(self.model, self.x_test, self.decision_threshold)
+            y_pred_train = labels_from_probability_threshold(
+                self.model, self.x_train, self.decision_threshold
+            )
+            y_pred_test = labels_from_probability_threshold(
+                self.model, self.x_test, self.decision_threshold
+            )
             y_proba_train = self.model.predict_proba(self.x_train)[:, 1]
             y_proba_test = self.model.predict_proba(self.x_test)[:, 1]
 
@@ -761,9 +780,7 @@ class Baseline:
                     "train_pr_auc omitido: treino sem ambas as classes (estratificação?)."
                 )
             if int(self.y_test.sum()) > 0 and int(len(self.y_test) - self.y_test.sum()) > 0:
-                metrics["test_pr_auc"] = float(
-                    average_precision_score(self.y_test, y_proba_test)
-                )
+                metrics["test_pr_auc"] = float(average_precision_score(self.y_test, y_proba_test))
             else:
                 metrics["test_pr_auc"] = float("nan")
                 logger.warning(
@@ -782,10 +799,18 @@ class Baseline:
 
             try:
                 gr.build_precision_recall_curve(
-                    self.y_test, y_proba_test, self._graph_run_stamp, graph_root=self.path_graphs, split_label="test"
+                    self.y_test,
+                    y_proba_test,
+                    self._graph_run_stamp,
+                    graph_root=self.path_graphs,
+                    split_label="test",
                 )
                 gr.build_precision_recall_curve(
-                    self.y_train, y_proba_train, self._graph_run_stamp, graph_root=self.path_graphs, split_label="train"
+                    self.y_train,
+                    y_proba_train,
+                    self._graph_run_stamp,
+                    graph_root=self.path_graphs,
+                    split_label="train",
                 )
             except Exception as e:
                 logger.warning("Curvas Precision–Recall não geradas: %s", e)
@@ -816,7 +841,7 @@ class Baseline:
                 logger.info(f"Test PR-AUC:     {metrics['test_pr_auc']:.4f}")
             logger.info(f"Overfitting:    {overfitting:.4f}")
             logger.info("Treino e logs concluídos.")
-    
+
     def split_data(self):
         """
         Divisão treino/teste no frame bruto (pós-EDA); imputação e encoding ocorrem
@@ -827,9 +852,11 @@ class Baseline:
 
         x = self.data_encoded.drop(columns="target")
         y = self.data_encoded["target"]
-        
-        self.x_train,self.x_test,self.y_train,self.y_test = train_test_split(x,y,test_size=self.test_size,random_state=self.random_state,stratify=y)
-            
+
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
+            x, y, test_size=self.test_size, random_state=self.random_state, stratify=y
+        )
+
     def save(self):
         """
         Salva o modelo treinado e o sample de integração com FE:
@@ -838,16 +865,13 @@ class Baseline:
         """
         logger.info("Iniciando o salvamento dos artefatos...")
 
-        sample_raw = (
-            pd.concat(
-                [
-                    self.x_train.assign(target=self.y_train),
-                    self.x_test.assign(target=self.y_test),
-                ],
-                axis=0,
-            )
-            .sort_index()
-        )
+        sample_raw = pd.concat(
+            [
+                self.x_train.assign(target=self.y_train),
+                self.x_test.assign(target=self.y_test),
+            ],
+            axis=0,
+        ).sort_index()
         defer = self.defer_global_preprocess_contract
         os.makedirs(self.snapshot_path, exist_ok=True)
         sample_stable_path = os.path.join(self.path_data_preprocessed, self.contract_sample_name)
@@ -967,7 +991,7 @@ class Baseline:
         self._run_ingestion_and_quality(start_time)
         self._run_eda_and_modeling_prep(start_time)
         self._run_training_and_persistence(start_time)
-    
+
     def save_artifacts(self):
         """
         Arquiva o dataset original e os gráficos gerados no diretório de snapshot.
@@ -1014,17 +1038,16 @@ class Baseline:
         if os.path.exists(self.path_graphs):
             if not os.path.exists(target_graphs_path):
                 os.makedirs(target_graphs_path)
-            
+
             for file_name in os.listdir(self.path_graphs):
                 full_file_name = os.path.join(self.path_graphs, file_name)
                 if os.path.isfile(full_file_name):
                     shutil.move(full_file_name, target_graphs_path)
-            
+
             logger.info(f"Gráficos movidos para: {target_graphs_path}")
-        
-            
-if __name__=="__main__":
-            
+
+
+if __name__ == "__main__":
     logger = setup_log(psnapshot_path, pagora)
     start_time = datetime.now()
     logger.info(f"Iniciando o pipeline: {start_time}")
@@ -1036,14 +1059,9 @@ if __name__=="__main__":
     try:
         pipeline.run(start_time)
         pipeline.save_artifacts()
-        logger.debug(f"Artefatos salvos: {datetime.now() - start_time }")
+        logger.debug(f"Artefatos salvos: {datetime.now() - start_time}")
         end_time = datetime.now() - start_time
         logger.debug(f"Baseline encerrado em : {end_time}")
     except Exception as e:
         logger.error(f"Erro durante a execução do pipeline: {e}")
         raise ValueError("Pipeline interrompido devido a um erro.")
-    
-    
-
-        
-        

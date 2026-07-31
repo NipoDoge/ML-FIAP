@@ -29,11 +29,13 @@ FORBIDDEN: dict[str, frozenset[str]] = {
 }
 
 # Excepções temporárias (path relativo a src/) — remover na Fase 4 (platform_ring)
-TRANSITION_ALLOWLIST: frozenset[tuple[str, str]] = frozenset({
-    ("orchestration_ring/persist_run.py", "services.processor.airflow_persistence"),
-    ("orchestration_ring/tabular_training.py", "services.processor.artifact_bundle"),
-    ("orchestration_ring/tabular_training.py", "services.processor.fe_bundle_export"),
-})
+TRANSITION_ALLOWLIST: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("orchestration_ring/persist_run.py", "services.processor.airflow_persistence"),
+        ("orchestration_ring/tabular_training.py", "services.processor.artifact_bundle"),
+        ("orchestration_ring/tabular_training.py", "services.processor.fe_bundle_export"),
+    }
+)
 
 # código legado → anel pretendido (avisos até migrar)
 LEGACY_MAP: dict[str, str] = {
@@ -129,7 +131,6 @@ def _check_file(path: Path, *, strict_legacy: bool) -> list[str]:
     return errors
 
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verifica imports entre anéis _ring.")
     parser.add_argument(
@@ -146,9 +147,7 @@ def main() -> int:
         return 1
 
     py_files = [
-        p
-        for p in SRC.rglob("*.py")
-        if "artifacts" not in p.parts and "__pycache__" not in p.parts
+        p for p in SRC.rglob("*.py") if "artifacts" not in p.parts and "__pycache__" not in p.parts
     ]
 
     errors: list[str] = []

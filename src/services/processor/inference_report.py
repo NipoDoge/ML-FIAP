@@ -70,7 +70,11 @@ def attach_fe_model_comparison_table(merged_metrics: dict, pipeline: Any) -> Non
         for k, v in rec.items():
             if v is None:
                 row[k] = None
-            elif isinstance(v, (float, int)) and isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            elif (
+                isinstance(v, (float, int))
+                and isinstance(v, float)
+                and (math.isnan(v) or math.isinf(v))
+            ):
                 row[k] = None
             elif isinstance(v, (float, int)):
                 row[k] = float(v) if isinstance(v, float) else int(v)
@@ -157,12 +161,16 @@ def build_inference_report(metrics: dict | None, inference_backend: str) -> Infe
     if backend not in ("sklearn", "mlp"):
         backend = "sklearn"
 
-    predict_model_key = str(m.get("predict_model") or ("pytorch_mlp" if backend == "mlp" else "sklearn_pipeline"))
+    predict_model_key = str(
+        m.get("predict_model") or ("pytorch_mlp" if backend == "mlp" else "sklearn_pipeline")
+    )
     sk_benchmark = m.get("sklearn_benchmark_classifier") or m.get("best_model_name")
 
     best_cv = m.get("best_cv_score")
     try:
-        best_cv_f = float(best_cv) if best_cv is not None and math.isfinite(float(best_cv)) else None
+        best_cv_f = (
+            float(best_cv) if best_cv is not None and math.isfinite(float(best_cv)) else None
+        )
     except (TypeError, ValueError):
         best_cv_f = None
 
@@ -228,10 +236,10 @@ def build_inference_report(metrics: dict | None, inference_backend: str) -> Infe
         )
     else:
         model_used = dict(promoted_row) if promoted_row else {}
-        served_name = str(model_used.get("Modelo") or (f"{best_name} (tuned)" if best_name else predict_model_key))
-        served_origin = str(
-            model_used.get("Origem") or "sklearn (pós-tuning, promovido)"
+        served_name = str(
+            model_used.get("Modelo") or (f"{best_name} (tuned)" if best_name else predict_model_key)
         )
+        served_origin = str(model_used.get("Origem") or "sklearn (pós-tuning, promovido)")
 
     exp_mlp: PyTorchMLPExperiment | None = None
     if mlp_row or mlp_training:
@@ -298,9 +306,7 @@ def build_inference_report(metrics: dict | None, inference_backend: str) -> Infe
                 "persistida."
             )
     else:
-        notes.append(
-            "Inferência sklearn: probabilidade via `predict_proba` quando disponível."
-        )
+        notes.append("Inferência sklearn: probabilidade via `predict_proba` quando disponível.")
 
     notes.append(
         "Compare `baseline.holdout_metrics` com `holdout_metrics_served_model` para ver evolução "
@@ -316,11 +322,7 @@ def build_inference_report(metrics: dict | None, inference_backend: str) -> Infe
             else (
                 f"CV ({om}): **{best_cv_f:.4f}**."
                 if best_cv_f is not None
-                else (
-                    f"Threshold métricas FE: **{thr_f:g}**."
-                    if thr_f is not None
-                    else ""
-                )
+                else (f"Threshold métricas FE: **{thr_f:g}**." if thr_f is not None else "")
             )
         ),
     ]
@@ -390,4 +392,3 @@ def build_recommendation_inference_report(metrics: dict | None) -> InferenceRepo
         notes=notes,
         summary_lines=[f"Campeão treino: {champion}"],
     )
-

@@ -1,4 +1,5 @@
 """Entrypoint do worker de recomendação (uvicorn)."""
+
 from pathlib import Path
 import sys
 

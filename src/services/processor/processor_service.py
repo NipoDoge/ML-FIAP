@@ -53,7 +53,9 @@ def _resolve_snapshot_manifest_and_sample(snap_root: str) -> tuple[str, str]:
     return manifests[0], samples[0]
 
 
-async def fetch_active_baseline_metrics_snapshot(session: AsyncSession, objective: str) -> dict | None:
+async def fetch_active_baseline_metrics_snapshot(
+    session: AsyncSession, objective: str
+) -> dict | None:
     """
     Lê o baseline ``completed`` + ``active`` para o domínio — usado ao fechar o FE para o relatório
     (baseline sklearn vs MLP / FE na mesma resposta de ``/predict``).
@@ -142,7 +144,9 @@ def _fe_model_metric_pair(metrics: dict | None) -> tuple[str, str]:
     return name, opt
 
 
-async def _baseline_recall_winner(session: AsyncSession, run: PipelineRuns, run_timestamp: str) -> None:
+async def _baseline_recall_winner(
+    session: AsyncSession, run: PipelineRuns, run_timestamp: str
+) -> None:
     """
     Mantém no máximo um baseline ``active`` por ``objective``: compara ``test_recall`` (teste)
     com outros baselines ``completed`` e ``active``; se o novo for estritamente melhor,
@@ -258,7 +262,9 @@ async def _fe_recall_winner(session: AsyncSession, run: PipelineRuns) -> None:
     champions = list(res.scalars().all())
 
     if not champions:
-        await _deactivate_other_fe_runs_for_objective(session, objective=run.objective, keep_run_id=run.id)
+        await _deactivate_other_fe_runs_for_objective(
+            session, objective=run.objective, keep_run_id=run.id
+        )
         run.active = True
         logger.info(
             "FE run %s primeiro FE ou sem campeões activos no objective %r — marcado activo.",
@@ -267,7 +273,9 @@ async def _fe_recall_winner(session: AsyncSession, run: PipelineRuns) -> None:
         )
         return
 
-    compatible = [c for c in champions if _fe_model_metric_pair(c.metrics) == (new_name, new_metric)]
+    compatible = [
+        c for c in champions if _fe_model_metric_pair(c.metrics) == (new_name, new_metric)
+    ]
     if not compatible:
         run.active = False
         champ_summary = [
@@ -288,10 +296,14 @@ async def _fe_recall_winner(session: AsyncSession, run: PipelineRuns) -> None:
         )
         return
 
-    best_prev = max((_fe_competition_score_from_metrics(c.metrics) for c in compatible), default=float("-inf"))
+    best_prev = max(
+        (_fe_competition_score_from_metrics(c.metrics) for c in compatible), default=float("-inf")
+    )
 
     if new_score > best_prev:
-        await _deactivate_other_fe_runs_for_objective(session, objective=run.objective, keep_run_id=run.id)
+        await _deactivate_other_fe_runs_for_objective(
+            session, objective=run.objective, keep_run_id=run.id
+        )
         run.active = True
         logger.info(
             "FE run %s campeão cv_%s (score=%.6f > %.6f, modelo=%r métrica_optim=%r). Outros FE do objective desactivados.",
@@ -396,7 +408,9 @@ def _prepare_prediction_features(run: PipelineRuns, domain: str, features: dict)
         from services.pipelines.feature_strategies import STRATEGY_REGISTRY
 
         if d not in STRATEGY_REGISTRY:
-            raise ValueError(f"Domínio {domain!r} sem strategy. Disponíveis: {list(STRATEGY_REGISTRY.keys())}")
+            raise ValueError(
+                f"Domínio {domain!r} sem strategy. Disponíveis: {list(STRATEGY_REGISTRY.keys())}"
+            )
         row = {str(k).strip().lower(): v for k, v in features.items()}
         row.pop("target", None)
         _infer_train_matrix_payload(row)
@@ -519,7 +533,9 @@ def _publish_global_baseline_from_snapshot(run_timestamp: str) -> None:
     src_manifest, src_sample = _resolve_snapshot_manifest_and_sample(snap_root)
 
     os.makedirs(settings.path_data_preprocessed, exist_ok=True)
-    dst_sample = os.path.abspath(os.path.join(settings.path_data_preprocessed, "baseline_sample.csv"))
+    dst_sample = os.path.abspath(
+        os.path.join(settings.path_data_preprocessed, "baseline_sample.csv")
+    )
     shutil.copy2(src_sample, dst_sample)
 
     with open(src_manifest, encoding="utf-8") as f:
@@ -532,7 +548,9 @@ def _publish_global_baseline_from_snapshot(run_timestamp: str) -> None:
     logger.info("Contrato FE global atualizado a partir do snapshot %s.", snap_root)
 
 
-async def run_baseline(file: UploadFile, objective: str, user_id: int, db: AsyncSession) -> PipelineRuns:
+async def run_baseline(
+    file: UploadFile, objective: str, user_id: int, db: AsyncSession
+) -> PipelineRuns:
     """Salva o CSV enviado, executa o Baseline e persiste o resultado."""
     from services.pipelines.baseline import Baseline
     from sklearn.metrics import (
@@ -574,7 +592,10 @@ async def run_baseline(file: UploadFile, objective: str, user_id: int, db: Async
                 pipeline_type="baseline",
             )
             from services.pipelines.feature_strategies import get_class_labels
-            from services.pipelines.binary_decision_threshold import labels_from_probability_threshold
+            from services.pipelines.binary_decision_threshold import (
+                labels_from_probability_threshold,
+            )
+
             pipeline = Baseline(
                 pobjective=objective,
                 run_timestamp=run_ts,
@@ -589,7 +610,9 @@ async def run_baseline(file: UploadFile, objective: str, user_id: int, db: Async
             csv_path = os.path.join(pipeline.snapshot_path, pipeline.contract_sample_name)
 
             model = pipeline.model
-            y_pred_test = labels_from_probability_threshold(model, pipeline.x_test, pipeline.decision_threshold)
+            y_pred_test = labels_from_probability_threshold(
+                model, pipeline.x_test, pipeline.decision_threshold
+            )
             y_proba_test = model.predict_proba(pipeline.x_test)[:, 1]
             _zd = {"zero_division": 0}
             yt = pipeline.y_test
@@ -654,7 +677,9 @@ async def run_feature_engineering(
 
     metric = normalize_optimization_metric(optimization_metric)
     if objective not in STRATEGY_REGISTRY:
-        raise ValueError(f"Strategy '{objective}' não registrada. Disponíveis: {list(STRATEGY_REGISTRY.keys())}")
+        raise ValueError(
+            f"Strategy '{objective}' não registrada. Disponíveis: {list(STRATEGY_REGISTRY.keys())}"
+        )
 
     os.makedirs(settings.path_data_preprocessed, exist_ok=True)
     resolved_manifest_path = await _resolve_fe_manifest_isolated_session(objective)
@@ -677,7 +702,9 @@ async def run_feature_engineering(
     if not os.path.isfile(csv_baseline):
         raise FileNotFoundError(f"CSV do baseline não encontrado: {csv_baseline}")
 
-    baseline_input_path = baseline_manifest.get("input_csv_snapshot") or baseline_manifest.get("input_csv_source")
+    baseline_input_path = baseline_manifest.get("input_csv_snapshot") or baseline_manifest.get(
+        "input_csv_source"
+    )
     baseline_input_path = os.path.abspath(baseline_input_path) if baseline_input_path else None
     # Contrato FE: o treino segue sempre ``output_sample_csv_stable`` (ex. pre_processed/baseline_sample.csv).
     # Gravamos esse ficheiro como etiqueta na BD; o CSV “upstream” do baseline fica só nas métricas de auditoria.
@@ -706,7 +733,11 @@ async def run_feature_engineering(
 
     try:
         setup_pipeline_run_logging(
-            snapshot_path, run_ts, run_id=run.id, objective=objective, pipeline_type="feature_engineering"
+            snapshot_path,
+            run_ts,
+            run_id=run.id,
+            objective=objective,
+            pipeline_type="feature_engineering",
         )
 
         run_root = tempfile.mkdtemp(prefix=f"fe_bundle_{run.id}_")

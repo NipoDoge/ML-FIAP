@@ -37,11 +37,7 @@ class TestFeatureEngineeringInit:
         """Test initialization with custom run timestamp"""
         strategy = Mock(spec=FeatureStrategy)
         run_timestamp = "20260415_120000"
-        fe = FeatureEngineering(
-            objective="churn",
-            strategy=strategy,
-            run_timestamp=run_timestamp
-        )
+        fe = FeatureEngineering(objective="churn", strategy=strategy, run_timestamp=run_timestamp)
 
         assert fe.now == run_timestamp
 
@@ -49,11 +45,7 @@ class TestFeatureEngineeringInit:
         """Test initialization with explicit CSV path"""
         strategy = Mock(spec=FeatureStrategy)
         csv_path = "/path/to/data.csv"
-        fe = FeatureEngineering(
-            objective="churn",
-            strategy=strategy,
-            csv_path=csv_path
-        )
+        fe = FeatureEngineering(objective="churn", strategy=strategy, csv_path=csv_path)
 
         assert fe._explicit_csv_path == os.path.abspath(csv_path)
 
@@ -61,9 +53,7 @@ class TestFeatureEngineeringInit:
         """Test initialization with custom optimization metric"""
         strategy = Mock(spec=FeatureStrategy)
         fe = FeatureEngineering(
-            objective="heart_disease",
-            strategy=strategy,
-            optimization_metric="f1"
+            objective="heart_disease", strategy=strategy, optimization_metric="f1"
         )
 
         assert fe.optimization_metric == "f1"
@@ -101,11 +91,9 @@ class TestLoadData:
         self.fe._explicit_csv_path = csv_path
 
         # Mock CSV data
-        mock_data = pd.DataFrame({
-            "feature1": [1, 2, 3],
-            "feature2": [4, 5, 6],
-            "target": [0, 1, 0]
-        })
+        mock_data = pd.DataFrame(
+            {"feature1": [1, 2, 3], "feature2": [4, 5, 6], "target": [0, 1, 0]}
+        )
         mock_read_csv.return_value = mock_data
 
         with patch("os.path.isfile", return_value=True):
@@ -140,10 +128,7 @@ class TestLoadData:
     @patch("pandas.read_csv")
     def test_load_data_missing_target_column(self, mock_read_csv, mock_glob):
         """Test that ValueError is raised when target column is missing"""
-        mock_data = pd.DataFrame({
-            "feature1": [1, 2, 3],
-            "feature2": [4, 5, 6]
-        })
+        mock_data = pd.DataFrame({"feature1": [1, 2, 3], "feature2": [4, 5, 6]})
         mock_read_csv.return_value = mock_data
         mock_glob.return_value = ["/path/to/data.csv"]
 
@@ -155,11 +140,9 @@ class TestLoadData:
     @patch("pandas.read_csv")
     def test_load_data_with_null_values(self, mock_read_csv, mock_glob):
         """Test that ValueError is raised when null values are present"""
-        mock_data = pd.DataFrame({
-            "feature1": [1, 2, np.nan],
-            "feature2": [4, 5, 6],
-            "target": [0, 1, 0]
-        })
+        mock_data = pd.DataFrame(
+            {"feature1": [1, 2, np.nan], "feature2": [4, 5, 6], "target": [0, 1, 0]}
+        )
         mock_read_csv.return_value = mock_data
         mock_glob.return_value = ["/path/to/data.csv"]
 
@@ -171,11 +154,9 @@ class TestLoadData:
     @patch("pandas.read_csv")
     def test_load_data_removes_column_prefixes(self, mock_read_csv, mock_glob):
         """Test that column prefixes are removed from legacy CSVs"""
-        mock_data = pd.DataFrame({
-            "prefix__feature1": [1, 2, 3],
-            "prefix__feature2": [4, 5, 6],
-            "target": [0, 1, 0]
-        })
+        mock_data = pd.DataFrame(
+            {"prefix__feature1": [1, 2, 3], "prefix__feature2": [4, 5, 6], "target": [0, 1, 0]}
+        )
         mock_read_csv.return_value = mock_data
         mock_glob.return_value = ["/path/to/data.csv"]
 
@@ -190,11 +171,9 @@ class TestLoadData:
     @patch("pandas.read_csv")
     def test_load_data_lowercase_columns(self, mock_read_csv, mock_glob):
         """Test that columns are converted to lowercase"""
-        mock_data = pd.DataFrame({
-            "Feature1": [1, 2, 3],
-            "FEATURE2": [4, 5, 6],
-            "TARGET": [0, 1, 0]
-        })
+        mock_data = pd.DataFrame(
+            {"Feature1": [1, 2, 3], "FEATURE2": [4, 5, 6], "TARGET": [0, 1, 0]}
+        )
         mock_read_csv.return_value = mock_data
         mock_glob.return_value = ["/path/to/data.csv"]
 
@@ -211,11 +190,9 @@ class TestBuildFeatures:
         """Setup for each test"""
         self.strategy = Mock(spec=FeatureStrategy)
         self.fe = FeatureEngineering(objective="heart_disease", strategy=self.strategy)
-        self.fe.data = pd.DataFrame({
-            "feature1": [1, 2, 3],
-            "feature2": [4, 5, 6],
-            "target": [0, 1, 0]
-        })
+        self.fe.data = pd.DataFrame(
+            {"feature1": [1, 2, 3], "feature2": [4, 5, 6], "target": [0, 1, 0]}
+        )
 
     def test_build_features_calls_strategy(self):
         """Test that build_features calls strategy methods"""
@@ -247,13 +224,15 @@ class TestSelectFeatures:
         self.strategy = Mock(spec=FeatureStrategy)
         self.fe = FeatureEngineering(objective="heart_disease", strategy=self.strategy)
         np.random.seed(42)
-        self.fe.data = pd.DataFrame({
-            "feature1": np.random.randn(100),
-            "feature2": np.random.randn(100),
-            "feature3": np.random.randn(100),
-            "feature4": np.random.randn(100),
-            "target": np.random.randint(0, 2, 100)
-        })
+        self.fe.data = pd.DataFrame(
+            {
+                "feature1": np.random.randn(100),
+                "feature2": np.random.randn(100),
+                "feature3": np.random.randn(100),
+                "feature4": np.random.randn(100),
+                "target": np.random.randint(0, 2, 100),
+            }
+        )
 
     @patch("sklearn.model_selection.train_test_split")
     def test_select_features_splits_data(self, mock_split):
@@ -300,11 +279,10 @@ class TestTrainModels:
         n_features = 5
         self.fe.x_train = pd.DataFrame(
             np.random.randn(n_samples, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            columns=[f"feature{i}" for i in range(n_features)],
         )
         self.fe.x_test = pd.DataFrame(
-            np.random.randn(30, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            np.random.randn(30, n_features), columns=[f"feature{i}" for i in range(n_features)]
         )
         self.fe.y_train = pd.Series(np.random.randint(0, 2, n_samples))
         self.fe.y_test = pd.Series(np.random.randint(0, 2, 30))
@@ -356,11 +334,10 @@ class TestTune:
         n_features = 5
         self.fe.x_train = pd.DataFrame(
             np.random.randn(n_samples, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            columns=[f"feature{i}" for i in range(n_features)],
         )
         self.fe.x_test = pd.DataFrame(
-            np.random.randn(30, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            np.random.randn(30, n_features), columns=[f"feature{i}" for i in range(n_features)]
         )
         self.fe.y_train = pd.Series(np.random.randint(0, 2, n_samples))
         self.fe.y_test = pd.Series(np.random.randint(0, 2, 30))
@@ -377,6 +354,7 @@ class TestTune:
     def test_tune_time_limit_respected(self):
         """Test that tuning respects time limit"""
         import time
+
         start = time.time()
         self.fe.tune(time_limit_minutes=0.01)  # Very short time limit
         elapsed = time.time() - start
@@ -412,11 +390,10 @@ class TestEvaluateImportance:
         n_features = 5
         self.fe.x_train = pd.DataFrame(
             np.random.randn(n_samples, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            columns=[f"feature{i}" for i in range(n_features)],
         )
         self.fe.x_test = pd.DataFrame(
-            np.random.randn(30, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            np.random.randn(30, n_features), columns=[f"feature{i}" for i in range(n_features)]
         )
         self.fe.y_train = pd.Series(np.random.randint(0, 2, n_samples))
         self.fe.y_test = pd.Series(np.random.randint(0, 2, 30))
@@ -445,20 +422,17 @@ class TestSave:
         """Setup for each test"""
         self.strategy = Mock(spec=FeatureStrategy)
         self.fe = FeatureEngineering(
-            objective="heart_disease",
-            strategy=self.strategy,
-            run_timestamp="20260415_120000"
+            objective="heart_disease", strategy=self.strategy, run_timestamp="20260415_120000"
         )
         np.random.seed(42)
         n_samples = 100
         n_features = 5
         self.fe.x_train = pd.DataFrame(
             np.random.randn(n_samples, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            columns=[f"feature{i}" for i in range(n_features)],
         )
         self.fe.x_test = pd.DataFrame(
-            np.random.randn(30, n_features),
-            columns=[f"feature{i}" for i in range(n_features)]
+            np.random.randn(30, n_features), columns=[f"feature{i}" for i in range(n_features)]
         )
         self.fe.y_train = pd.Series(np.random.randint(0, 2, n_samples))
         self.fe.y_test = pd.Series(np.random.randint(0, 2, 30))
@@ -471,9 +445,9 @@ class TestSave:
     @patch("mlflow.set_experiment")
     @patch("mlflow.create_experiment")
     @patch("os.makedirs")
-    def test_save_creates_joblib_file(self, mock_makedirs, mock_create_exp,
-                                      mock_set_exp, mock_get_exp, mock_start_run,
-                                      mock_dump):
+    def test_save_creates_joblib_file(
+        self, mock_makedirs, mock_create_exp, mock_set_exp, mock_get_exp, mock_start_run, mock_dump
+    ):
         """Test that joblib file is created"""
         mock_get_exp.return_value = None
         mock_start_run.return_value.__enter__ = Mock()
@@ -489,9 +463,9 @@ class TestSave:
     @patch("mlflow.set_experiment")
     @patch("mlflow.create_experiment")
     @patch("os.makedirs")
-    def test_save_logs_to_mlflow(self, mock_makedirs, mock_create_exp,
-                                 mock_set_exp, mock_get_exp, mock_start_run,
-                                 mock_dump):
+    def test_save_logs_to_mlflow(
+        self, mock_makedirs, mock_create_exp, mock_set_exp, mock_get_exp, mock_start_run, mock_dump
+    ):
         """Test that results are logged to MLflow"""
         mock_get_exp.return_value = None
         mock_start_run.return_value.__enter__ = Mock()
@@ -548,8 +522,7 @@ class TestRun:
     @patch("services.pipelines.feature_engineering.FeatureEngineering.build_features")
     @patch("services.pipelines.feature_engineering.FeatureEngineering.load_data")
     def test_run_calls_all_methods_in_order(
-        self, mock_load, mock_build, mock_select, mock_train, mock_tune,
-        mock_importance, mock_save
+        self, mock_load, mock_build, mock_select, mock_train, mock_tune, mock_importance, mock_save
     ):
         """Test that run method calls all pipeline steps"""
         strategy = Mock(spec=FeatureStrategy)
@@ -574,8 +547,7 @@ class TestRun:
     @patch("services.pipelines.feature_engineering.FeatureEngineering.build_features")
     @patch("services.pipelines.feature_engineering.FeatureEngineering.load_data")
     def test_run_passes_correct_parameters(
-        self, mock_load, mock_build, mock_select, mock_train, mock_tune,
-        mock_importance, mock_save
+        self, mock_load, mock_build, mock_select, mock_train, mock_tune, mock_importance, mock_save
     ):
         """Test that run passes correct parameters to tune"""
         strategy = Mock(spec=FeatureStrategy)

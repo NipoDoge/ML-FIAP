@@ -15,7 +15,9 @@ def labels_from_probability_threshold(estimator: Any, X: Any, threshold: float) 
     """
     t = float(threshold)
     if not (0.0 <= t <= 1.0):
-        raise ValueError(f"classification_decision_threshold deve estar em [0, 1]. Recebido: {threshold!r}")
+        raise ValueError(
+            f"classification_decision_threshold deve estar em [0, 1]. Recebido: {threshold!r}"
+        )
 
     pred_default = estimator.predict(X)
     if not hasattr(estimator, "predict_proba"):

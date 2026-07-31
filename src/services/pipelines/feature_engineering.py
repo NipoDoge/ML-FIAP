@@ -19,7 +19,13 @@ from joblib import parallel_backend
 
 from datetime import datetime
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split, cross_val_score, cross_validate, StratifiedKFold, ParameterSampler
+from sklearn.model_selection import (
+    train_test_split,
+    cross_val_score,
+    cross_validate,
+    StratifiedKFold,
+    ParameterSampler,
+)
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline as SkPipeline
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -28,7 +34,14 @@ from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, classification_report
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    classification_report,
+)
 from sklearn.inspection import permutation_importance
 
 from core.configs import settings
@@ -37,7 +50,11 @@ from typing import TYPE_CHECKING, Any
 
 from services.pipelines.feature_strategies.base import FeatureStrategy
 from services.pipelines.fe_hyperparameter_tuning import param_distributions_for
-from services.pipelines.fe_model_selection import normalize_optimization_metric, result_column_for_metric, sklearn_scoring_parameter
+from services.pipelines.fe_model_selection import (
+    normalize_optimization_metric,
+    result_column_for_metric,
+    sklearn_scoring_parameter,
+)
 from services.utils import filename_with_suffix, log_training_csv_to_active_run
 from ml_core_ring.mlflow_setup import configure_mlflow_tracking, ensure_mlflow_experiment
 
@@ -163,11 +180,15 @@ class FeatureEngineering:
             ("min_roc_auc", self.min_roc_auc),
         ):
             if metric_value is not None and not (0.0 <= metric_value <= 1.0):
-                raise ValueError(f"{metric_name} deve estar no intervalo [0, 1]. Recebido: {metric_value}")
+                raise ValueError(
+                    f"{metric_name} deve estar no intervalo [0, 1]. Recebido: {metric_value}"
+                )
         if self.tuning_n_iter <= 0:
             raise ValueError(f"tuning_n_iter deve ser > 0. Recebido: {self.tuning_n_iter}")
         if not (0.0 < self.mlp_val_fraction < 1.0):
-            raise ValueError(f"mlp_val_fraction deve estar em (0, 1). Recebido: {self.mlp_val_fraction}")
+            raise ValueError(
+                f"mlp_val_fraction deve estar em (0, 1). Recebido: {self.mlp_val_fraction}"
+            )
 
     def fe_sklearn_joblib_path(self) -> str:
         name = filename_with_suffix(
@@ -231,7 +252,11 @@ class FeatureEngineering:
             else:
                 continuous_cols.append(col)
 
-        grouped = {"binary": binary_cols, "continuous": continuous_cols, "categorical": categorical_cols}
+        grouped = {
+            "binary": binary_cols,
+            "continuous": continuous_cols,
+            "categorical": categorical_cols,
+        }
         self.feature_groups = grouped
         return grouped
 
@@ -316,7 +341,9 @@ class FeatureEngineering:
 
     def load_data(self):
         logger.info("Carregando dataset pré-processado...")
-        manifest_path = self._explicit_manifest_path or os.path.join(self.path_data_preprocessed, "manifest.json")
+        manifest_path = self._explicit_manifest_path or os.path.join(
+            self.path_data_preprocessed, "manifest.json"
+        )
         if not os.path.isfile(manifest_path):
             raise ValueError(f"Manifest não encontrado: {manifest_path}")
 
@@ -361,10 +388,14 @@ class FeatureEngineering:
 
         logger.info(f"Colunas: {df.columns.tolist()}")
 
-        if 'target' not in df.columns:
-            logger.error("Coluna 'target' não encontrada no dataset pré-processado no final do CSV.")
-            raise ValueError("Pipeline interrompido — coluna 'target' não encontrada no dataset pré-processado.")
-        
+        if "target" not in df.columns:
+            logger.error(
+                "Coluna 'target' não encontrada no dataset pré-processado no final do CSV."
+            )
+            raise ValueError(
+                "Pipeline interrompido — coluna 'target' não encontrada no dataset pré-processado."
+            )
+
         null_total = df.isnull().sum().sum()
         if null_total > 0:
             logger.error(f"Valores nulos encontrados: {null_total}")
@@ -400,7 +431,8 @@ class FeatureEngineering:
         self.k_features = min(k, max(1, x.shape[1]))
 
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
-            x, y,
+            x,
+            y,
             test_size=self.test_size,
             random_state=self.random_state,
             stratify=y,
@@ -466,7 +498,9 @@ class FeatureEngineering:
                 guardrail_roc_auc_cv = float(np.mean(cv_guard["test_roc_auc"]))
 
                 pipeline.fit(self.x_train, self.y_train)
-                y_pred = labels_from_probability_threshold(pipeline, self.x_test, self.decision_threshold)
+                y_pred = labels_from_probability_threshold(
+                    pipeline, self.x_test, self.decision_threshold
+                )
 
                 metrics = {
                     "Modelo": name,
@@ -479,9 +513,13 @@ class FeatureEngineering:
                 }
 
                 if hasattr(pipeline, "predict_proba"):
-                    metrics["ROC AUC"] = roc_auc_score(self.y_test, pipeline.predict_proba(self.x_test)[:, 1])
+                    metrics["ROC AUC"] = roc_auc_score(
+                        self.y_test, pipeline.predict_proba(self.x_test)[:, 1]
+                    )
                 elif hasattr(pipeline, "decision_function"):
-                    metrics["ROC AUC"] = roc_auc_score(self.y_test, pipeline.decision_function(self.x_test))
+                    metrics["ROC AUC"] = roc_auc_score(
+                        self.y_test, pipeline.decision_function(self.x_test)
+                    )
 
                 metrics["Pass Guardrails"] = self._passes_guardrails(
                     guardrail_precision_cv,
@@ -496,7 +534,12 @@ class FeatureEngineering:
                 self.trained_models[name] = pipeline
                 results.append(metrics)
 
-        self.results_df = pd.DataFrame(results).sort_values("CV Score", ascending=False).reset_index(drop=True).round(4)
+        self.results_df = (
+            pd.DataFrame(results)
+            .sort_values("CV Score", ascending=False)
+            .reset_index(drop=True)
+            .round(4)
+        )
         logger.info(f"Ranking de modelos:\n{self.results_df.to_string()}")
 
         eligible = self.results_df[self.results_df["Pass Guardrails"]]
@@ -569,7 +612,9 @@ class FeatureEngineering:
         deadline = start + time_limit_minutes * 60
 
         param_distributions = param_distributions_for(self.best_model_name)
-        sampler = ParameterSampler(param_distributions, n_iter=self.tuning_n_iter, random_state=self.random_state)
+        sampler = ParameterSampler(
+            param_distributions, n_iter=self.tuning_n_iter, random_state=self.random_state
+        )
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=self.random_state)
 
         self.best_cv_score = -np.inf
@@ -622,7 +667,9 @@ class FeatureEngineering:
                     if "test_roc_auc" in cv_guard:
                         guardrail_roc_auc_cv = float(np.mean(cv_guard["test_roc_auc"]))
 
-                pass_guardrails = self._passes_guardrails(guardrail_precision_cv, guardrail_roc_auc_cv)
+                pass_guardrails = self._passes_guardrails(
+                    guardrail_precision_cv, guardrail_roc_auc_cv
+                )
 
                 pipeline.fit(self.x_train, self.y_train)
 
@@ -685,7 +732,9 @@ class FeatureEngineering:
 
         self.best_pipeline = tuned_pipeline
 
-        y_pred = labels_from_probability_threshold(self.best_pipeline, self.x_test, self.decision_threshold)
+        y_pred = labels_from_probability_threshold(
+            self.best_pipeline, self.x_test, self.decision_threshold
+        )
         y_proba = (
             self.best_pipeline.predict_proba(self.x_test)[:, 1]
             if hasattr(self.best_pipeline, "predict_proba")
@@ -736,7 +785,12 @@ class FeatureEngineering:
         if not self.enable_mlp_torch:
             logger.info("MLP PyTorch desligado (enable_mlp_torch=False).")
             return
-        if self.x_train is None or self.x_test is None or self.y_train is None or self.y_test is None:
+        if (
+            self.x_train is None
+            or self.x_test is None
+            or self.y_train is None
+            or self.y_test is None
+        ):
             logger.warning("MLP PyTorch: split inexistente — passo ignorado.")
             return
 
@@ -988,19 +1042,23 @@ class FeatureEngineering:
 
         if not rows:
             return None
-        df = pd.DataFrame(rows)[["Modelo", "Origem", "Accuracy", "Precision", "Recall", "F1", "ROC AUC"]]
+        df = pd.DataFrame(rows)[
+            ["Modelo", "Origem", "Accuracy", "Precision", "Recall", "F1", "ROC AUC"]
+        ]
         return df.round(4)
 
     def _export_fe_bundle(self, joblib_path: str) -> str:
         """Pasta com comparação de modelos, resumo PyTorch, CSV pré-transform (pós-strategy) e pós-transform (entrada do modelo)."""
         bundle = self.fe_export_bundle_dir(joblib_path)
         os.makedirs(bundle, exist_ok=True)
-        
+
         def _f(name: str) -> str:
             return filename_with_suffix(name, self._artifact_suffix)
 
         if self.results_df is not None:
-            self.results_df.to_csv(os.path.join(bundle, _f("model_selection_comparison.csv")), index=False)
+            self.results_df.to_csv(
+                os.path.join(bundle, _f("model_selection_comparison.csv")), index=False
+            )
 
         comparison_df = self._build_model_comparison_table()
         if comparison_df is not None:
@@ -1023,9 +1081,9 @@ class FeatureEngineering:
                 hdr = "| " + " | ".join(comparison_df.columns) + " |"
                 sep = "| " + " | ".join(["---"] * len(comparison_df.columns)) + " |"
                 lines = [
-                    "| " + " | ".join(
-                        f"{v:.4f}" if isinstance(v, float) else str(v) for v in row
-                    ) + " |"
+                    "| "
+                    + " | ".join(f"{v:.4f}" if isinstance(v, float) else str(v) for v in row)
+                    + " |"
                     for row in comparison_df.itertuples(index=False, name=None)
                 ]
                 md_table = "\n".join([hdr, sep, *lines])
@@ -1054,7 +1112,9 @@ class FeatureEngineering:
         kv_rows.append(("pytorch_checkpoint_path", "" if ckpt is None else str(ckpt)))
         if self.mlp_torch_result is not None:
             kv_rows.append(("pytorch_best_epoch", str(int(self.mlp_torch_result.best_epoch))))
-            kv_rows.append(("pytorch_best_val_loss", str(float(self.mlp_torch_result.best_val_loss))))
+            kv_rows.append(
+                ("pytorch_best_val_loss", str(float(self.mlp_torch_result.best_val_loss)))
+            )
             for k, v in self.mlp_torch_result.metrics_val.items():
                 kv_rows.append((f"pytorch_metrics_val_{k}", str(float(v))))
             for k, v in self.mlp_torch_result.metrics_test.items():
@@ -1098,7 +1158,9 @@ class FeatureEngineering:
 
         tree_imp = getattr(model_step, "feature_importances_", None)
         if tree_imp is not None and len(tree_imp) == len(feat_names):
-            imp_df = pd.DataFrame({"feature": feat_names, "importance": tree_imp}).sort_values("importance", ascending=False)
+            imp_df = pd.DataFrame({"feature": feat_names, "importance": tree_imp}).sort_values(
+                "importance", ascending=False
+            )
             logger.info(f"Importância Gini (top 20):\n{imp_df.head(20).to_string()}")
 
             fig, ax = plt.subplots(figsize=(8, min(0.45 * len(imp_df.head(20)), 10)))
@@ -1109,11 +1171,18 @@ class FeatureEngineering:
             plt.tight_layout()
             if self.export_figures_dir:
                 os.makedirs(self.export_figures_dir, exist_ok=True)
-                gini_name = filename_with_suffix("feature_importance_gini_top20.png", self._artifact_suffix)
+                gini_name = filename_with_suffix(
+                    "feature_importance_gini_top20.png", self._artifact_suffix
+                )
                 gini_png = os.path.join(self.export_figures_dir, gini_name)
                 fig.savefig(gini_png, dpi=200, bbox_inches="tight")
             self.figs_to_log.append(
-                (filename_with_suffix("feature_importance_gini_top20.png", self._artifact_suffix), fig)
+                (
+                    filename_with_suffix(
+                        "feature_importance_gini_top20.png", self._artifact_suffix
+                    ),
+                    fig,
+                )
             )
             plt.close(fig)
         else:
@@ -1136,12 +1205,16 @@ class FeatureEngineering:
                 perm_feat_names.shape[0],
                 perm.importances_mean.shape[0],
             )
-            perm_feat_names = np.array([f"feature_{i}" for i in range(perm.importances_mean.shape[0])])
-        perm_df = pd.DataFrame({
-            "feature": perm_feat_names,
-            "importance": perm.importances_mean,
-            "std": perm.importances_std,
-        }).sort_values("importance", ascending=False)
+            perm_feat_names = np.array(
+                [f"feature_{i}" for i in range(perm.importances_mean.shape[0])]
+            )
+        perm_df = pd.DataFrame(
+            {
+                "feature": perm_feat_names,
+                "importance": perm.importances_mean,
+                "std": perm.importances_std,
+            }
+        ).sort_values("importance", ascending=False)
         logger.info(f"Importância por permutação (top 20):\n{perm_df.head(20).to_string()}")
 
         fig2, ax2 = plt.subplots(figsize=(8, min(0.45 * len(perm_df.head(20)), 10)))
@@ -1152,11 +1225,18 @@ class FeatureEngineering:
         plt.tight_layout()
         if self.export_figures_dir:
             os.makedirs(self.export_figures_dir, exist_ok=True)
-            perm_name = filename_with_suffix("feature_importance_permutation_top20.png", self._artifact_suffix)
+            perm_name = filename_with_suffix(
+                "feature_importance_permutation_top20.png", self._artifact_suffix
+            )
             p_png = os.path.join(self.export_figures_dir, perm_name)
             fig2.savefig(p_png, dpi=200, bbox_inches="tight")
         self.figs_to_log.append(
-            (filename_with_suffix("feature_importance_permutation_top20.png", self._artifact_suffix), fig2)
+            (
+                filename_with_suffix(
+                    "feature_importance_permutation_top20.png", self._artifact_suffix
+                ),
+                fig2,
+            )
         )
         plt.close(fig2)
 
@@ -1177,7 +1257,9 @@ class FeatureEngineering:
         try:
             fe_bundle_dir = self._export_fe_bundle(joblib_path)
         except Exception as e:
-            logger.error("Falha ao exportar bundle FE (CSV/comparação/PyTorch): %s", e, exc_info=True)
+            logger.error(
+                "Falha ao exportar bundle FE (CSV/comparação/PyTorch): %s", e, exc_info=True
+            )
 
         try:
             experiment_name = f"{self.objective}_feature_engineering"
@@ -1195,7 +1277,9 @@ class FeatureEngineering:
                     for k, v in self.best_params.items():
                         mlflow.log_param(k, str(v))
                 mlflow.log_param("optimization_metric", self.optimization_metric)
-                mlflow.log_param("classification_decision_threshold", float(self.decision_threshold))
+                mlflow.log_param(
+                    "classification_decision_threshold", float(self.decision_threshold)
+                )
                 mlflow.log_param("tuning_n_iter", self.tuning_n_iter)
                 if self.min_precision is not None:
                     mlflow.log_param("min_precision", float(self.min_precision))
@@ -1212,33 +1296,52 @@ class FeatureEngineering:
                 if np.isfinite(self.best_cv_score):
                     mlflow.log_metric(f"cv_{self.optimization_metric}", float(self.best_cv_score))
                 for k, v in self.tuned_metrics.items():
-                    if v is not None and not (isinstance(v, float) and (np.isnan(v) or np.isinf(v))):
+                    if v is not None and not (
+                        isinstance(v, float) and (np.isnan(v) or np.isinf(v))
+                    ):
                         mlflow.log_metric(k.replace(" ", "_").lower(), float(v))
 
                 # --- MLP PyTorch (MVP): mesma run do FE para comparar curvas/métricas no MLflow ---
                 if self.mlp_torch_result is not None:
                     mlflow.log_param("pytorch_mlp_enabled", True)
-                    mlflow.log_param("pytorch_mlp_hidden_dims", ",".join(str(d) for d in self.mlp_hidden_dims))
+                    mlflow.log_param(
+                        "pytorch_mlp_hidden_dims", ",".join(str(d) for d in self.mlp_hidden_dims)
+                    )
                     mlflow.log_param("pytorch_mlp_dropout", float(self.mlp_dropout))
                     mlflow.log_param("pytorch_mlp_batch_size", int(self.mlp_batch_size))
                     mlflow.log_param("pytorch_mlp_lr", float(self.mlp_lr))
                     mlflow.log_param("pytorch_mlp_weight_decay", float(self.mlp_weight_decay))
                     mlflow.log_param("pytorch_mlp_max_epochs", int(self.mlp_max_epochs))
-                    mlflow.log_param("pytorch_mlp_early_stopping_patience", int(self.mlp_early_stopping_patience))
+                    mlflow.log_param(
+                        "pytorch_mlp_early_stopping_patience", int(self.mlp_early_stopping_patience)
+                    )
                     mlflow.log_param("pytorch_mlp_val_fraction", float(self.mlp_val_fraction))
                     if self.mlp_torch_hparams.get("torch_version"):
-                        mlflow.log_param("pytorch_mlp_torch_version", str(self.mlp_torch_hparams["torch_version"]))
-                    mlflow.log_metric("pytorch_mlp_best_epoch", float(self.mlp_torch_result.best_epoch))
-                    mlflow.log_metric("pytorch_mlp_best_val_loss", float(self.mlp_torch_result.best_val_loss))
+                        mlflow.log_param(
+                            "pytorch_mlp_torch_version",
+                            str(self.mlp_torch_hparams["torch_version"]),
+                        )
+                    mlflow.log_metric(
+                        "pytorch_mlp_best_epoch", float(self.mlp_torch_result.best_epoch)
+                    )
+                    mlflow.log_metric(
+                        "pytorch_mlp_best_val_loss", float(self.mlp_torch_result.best_val_loss)
+                    )
                     for split_name, metrics in (
                         ("val", self.mlp_torch_result.metrics_val),
                         ("test", self.mlp_torch_result.metrics_test),
                     ):
                         for k, v in metrics.items():
-                            if v is not None and not (isinstance(v, float) and (np.isnan(v) or np.isinf(v))):
+                            if v is not None and not (
+                                isinstance(v, float) and (np.isnan(v) or np.isinf(v))
+                            ):
                                 mlflow.log_metric(f"pytorch_mlp_{split_name}_{k}", float(v))
-                    if self.mlp_torch_checkpoint_path and os.path.isfile(self.mlp_torch_checkpoint_path):
-                        mlflow.log_artifact(self.mlp_torch_checkpoint_path, artifact_path="pytorch_mlp")
+                    if self.mlp_torch_checkpoint_path and os.path.isfile(
+                        self.mlp_torch_checkpoint_path
+                    ):
+                        mlflow.log_artifact(
+                            self.mlp_torch_checkpoint_path, artifact_path="pytorch_mlp"
+                        )
                     if self.mlp_artifact_prefix:
                         for ext in ("_preprocess.joblib", "_meta.json"):
                             p = f"{self.mlp_artifact_prefix}{ext}"
@@ -1286,7 +1389,9 @@ class FeatureEngineering:
         self.train_models()
         logger.debug(f"Modelos treinados: {datetime.now() - start_time}")
 
-    def _run_tuning_evaluation_and_persistence(self, start_time, time_limit_minutes: int, acc_target: float | None):
+    def _run_tuning_evaluation_and_persistence(
+        self, start_time, time_limit_minutes: int, acc_target: float | None
+    ):
         """
         Responsabilidade: tuning, avaliação final e persistência.
 
@@ -1328,7 +1433,10 @@ class FeatureEngineering:
             settings.use_mlp_for_prediction,
             self.enable_mlp_torch,
         )
-        logger.info("classification_decision_threshold: %s (métricas de teste; CV usa predict interno do sklearn)", self.decision_threshold)
+        logger.info(
+            "classification_decision_threshold: %s (métricas de teste; CV usa predict interno do sklearn)",
+            self.decision_threshold,
+        )
 
         self._run_data_contract_and_fe_build(start_time)
         self._run_modeling_prep_and_selection(start_time)
@@ -1344,11 +1452,15 @@ if __name__ == "__main__":
     objective = "heart_disease"
 
     if objective not in STRATEGY_REGISTRY:
-        raise ValueError(f"Strategy '{objective}' não registrada. Disponíveis: {list(STRATEGY_REGISTRY.keys())}")
+        raise ValueError(
+            f"Strategy '{objective}' não registrada. Disponíveis: {list(STRATEGY_REGISTRY.keys())}"
+        )
 
     strategy = STRATEGY_REGISTRY[objective]()
 
-    snapshot_path = os.path.join(settings.path_data, settings.path_logs, datetime.now().strftime("%Y%m%d_%H%M%S"))
+    snapshot_path = os.path.join(
+        settings.path_data, settings.path_logs, datetime.now().strftime("%Y%m%d_%H%M%S")
+    )
     setup_log(snapshot_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
 
     pipeline = FeatureEngineering(objective=objective, strategy=strategy)

@@ -141,7 +141,9 @@ async def promote_pipeline_run(
     elif pt == "recommendation":
         prefix = run.model_path or (run.metrics or {}).get("artifact_paths", {}).get("prefix")
         if not prefix:
-            raise ValueError("Run de recomendação sem prefix de artefacto (model_path ou metrics.artifact_paths).")
+            raise ValueError(
+                "Run de recomendação sem prefix de artefacto (model_path ou metrics.artifact_paths)."
+            )
         resolved = resolve_shared_artifact_path(str(prefix))
         if not resolved:
             raise ValueError(f"Prefix de recomendação inválido: {prefix!r}")
@@ -235,7 +237,9 @@ async def promote_recommendation_for_domain(
     )
 
 
-async def get_deployment_history(domain: str, db: AsyncSession, limit: int = 10) -> list[DeployedModels]:
+async def get_deployment_history(
+    domain: str, db: AsyncSession, limit: int = 10
+) -> list[DeployedModels]:
     """Retorna os últimos `limit` deployments (active + archived) para o domínio, do mais recente ao mais antigo."""
     d = _normalize_domain(domain)
     stmt = (

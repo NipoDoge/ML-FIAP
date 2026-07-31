@@ -18,6 +18,7 @@ from sqlalchemy import func, update
 
 from core.configs import settings
 from core.database import Session
+
 # Import side-effect: regista Roles, Users, Predictions, DeployedModels antes de
 # ``PipelineRuns`` resolver ``relationship("Users", ...)``.
 import models._all_models  # noqa: F401
@@ -26,7 +27,10 @@ from services.processor.deployment_service import (
     get_active_deployment,
     promote_active_feature_engineering_for_objective,
 )
-from services.processor.inference_report import attach_fe_model_comparison_table, attach_mlp_metrics_snapshot
+from services.processor.inference_report import (
+    attach_fe_model_comparison_table,
+    attach_mlp_metrics_snapshot,
+)
 from services.processor.processor_service import (
     _baseline_recall_winner,
     _fe_recall_winner,
@@ -128,7 +132,9 @@ async def persist_airflow_baseline_run(
         run.metrics = metrics
         session.add(run)
         await session.commit()
-        logger.info("Baseline Airflow guardado (pipeline_run_id=%s, active=%s).", run.id, run.active)
+        logger.info(
+            "Baseline Airflow guardado (pipeline_run_id=%s, active=%s).", run.id, run.active
+        )
         return run.id
     finally:
         await session.close()
@@ -325,7 +331,9 @@ async def persist_airflow_feature_engineering_run(
             if int(run.user_id) != int(user_id):
                 raise ValueError(f"Run id={existing_run_id}: user_id não coincide com o reservado.")
             if str(run.objective).strip().lower() != str(objective).strip().lower():
-                raise ValueError(f"Run id={existing_run_id}: objective não coincide com o reservado.")
+                raise ValueError(
+                    f"Run id={existing_run_id}: objective não coincide com o reservado."
+                )
             run.status = "completed"
             run.objective = objective
             run.original_filename = original_filename
@@ -373,7 +381,9 @@ async def persist_airflow_feature_engineering_run(
         await session.close()
 
 
-async def promote_airflow_fe_if_requested(*, objective: str, user_id: int, auto_promote: bool) -> None:
+async def promote_airflow_fe_if_requested(
+    *, objective: str, user_id: int, auto_promote: bool
+) -> None:
     if not auto_promote:
         logger.info("auto_promote=false — skip promote.")
         return

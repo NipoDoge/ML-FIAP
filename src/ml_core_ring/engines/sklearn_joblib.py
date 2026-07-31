@@ -25,7 +25,9 @@ def _align_dataframe_to_model(model, df: pd.DataFrame) -> pd.DataFrame:
         return df
     missing = [c for c in names if c not in df.columns]
     if missing:
-        raise ValueError("Colunas em falta para predição (alinhar ao treino): " + ", ".join(missing))
+        raise ValueError(
+            "Colunas em falta para predição (alinhar ao treino): " + ", ".join(missing)
+        )
     return df[names]
 
 

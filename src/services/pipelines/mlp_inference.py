@@ -91,7 +91,9 @@ def _align_for_mlp(df: pd.DataFrame, expected_cols: list[str]) -> pd.DataFrame:
     return df[expected_cols]
 
 
-def predict_with_mlp(bundle: MlpBundle, df_input: pd.DataFrame, threshold: float | None = None) -> tuple[int, float]:
+def predict_with_mlp(
+    bundle: MlpBundle, df_input: pd.DataFrame, threshold: float | None = None
+) -> tuple[int, float]:
     """
     Aplica o mesmo pré-processamento do treino e devolve ``(label, probability)``.
 

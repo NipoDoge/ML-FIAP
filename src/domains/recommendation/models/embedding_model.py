@@ -166,7 +166,9 @@ class TorchEmbeddingRecommender:
         self._user_map = {user_id: i for i, user_id in enumerate(users)}
         self._item_map = {item_id: i for i, item_id in enumerate(items)}
         self._reverse_items = {i: item_id for item_id, i in self._item_map.items()}
-        self._user_items = train_df.groupby("user_id")["item_id"].apply(lambda s: set(map(int, s))).to_dict()
+        self._user_items = (
+            train_df.groupby("user_id")["item_id"].apply(lambda s: set(map(int, s))).to_dict()
+        )
         self._rebuild_seen_indices()
         counts = train_df.groupby("item_id").size().sort_values(ascending=False)
         self._popular_items = [int(i) for i in counts.index.tolist()]
@@ -286,7 +288,9 @@ class TorchEmbeddingRecommender:
             logits = model(tensors[0], tensors[1])
             return float(loss_fn(logits, tensors[2]).item())
 
-    def recommend(self, user_id: int, n_items: int, exclude_items: set[int] | None = None) -> list[int]:
+    def recommend(
+        self, user_id: int, n_items: int, exclude_items: set[int] | None = None
+    ) -> list[int]:
         exclude = exclude_items or set()
         seen = self._user_items.get(user_id, set()) | exclude
         if self._model is None or user_id not in self._user_map:
@@ -317,7 +321,9 @@ class TorchEmbeddingRecommender:
             raise RuntimeError("Modelo torch não treinado.")
         torch.save(self._model.state_dict(), prefix.with_suffix(".pt"))
         meta = {
-            "model_type": "embedding_mlp_bce_item_bias" if self.use_item_bias else "embedding_mlp_bce",
+            "model_type": "embedding_mlp_bce_item_bias"
+            if self.use_item_bias
+            else "embedding_mlp_bce",
             "embedding_dim": self.embedding_dim,
             "hidden_dim": self.hidden_dim,
             "dropout": self.dropout,
@@ -348,7 +354,9 @@ class TorchEmbeddingRecommender:
             early_stopping_patience=int(meta.get("early_stopping_patience", 3)),
             early_stopping_min_delta=float(meta.get("early_stopping_min_delta", 1e-4)),
             min_positive_rating=float(meta.get("min_positive_rating", 0.0)),
-            use_item_bias=bool(meta.get("use_item_bias", meta.get("model_type") == "embedding_mlp_bce_item_bias")),
+            use_item_bias=bool(
+                meta.get("use_item_bias", meta.get("model_type") == "embedding_mlp_bce_item_bias")
+            ),
         )
         obj._user_map = {int(k): int(v) for k, v in meta["user_map"].items()}
         obj._item_map = {int(k): int(v) for k, v in meta["item_map"].items()}
@@ -385,9 +393,7 @@ class TorchEmbeddingRecommender:
     def _rebuild_seen_indices(self) -> None:
         self._user_seen_indices = {
             self._user_map[user_id]: {
-                self._item_map[item_id]
-                for item_id in items
-                if item_id in self._item_map
+                self._item_map[item_id] for item_id in items if item_id in self._item_map
             }
             for user_id, items in self._user_items.items()
             if user_id in self._user_map
@@ -398,7 +404,9 @@ class PopularityFallback:
     def __init__(self, popular_items: list[int]) -> None:
         self._popular_items = popular_items
 
-    def recommend(self, user_id: int, n_items: int, exclude_items: set[int] | None = None) -> list[int]:
+    def recommend(
+        self, user_id: int, n_items: int, exclude_items: set[int] | None = None
+    ) -> list[int]:
         exclude = exclude_items or set()
         out: list[int] = []
         for item in self._popular_items:

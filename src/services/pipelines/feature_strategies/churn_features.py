@@ -12,6 +12,7 @@ class ChurnFeatures(FeatureStrategy):
     """
     Feature engineering para churn em telecom (nível produção).
     """
+
     def __init__(self):
         self.monthly_median = None
 
@@ -65,22 +66,42 @@ class ChurnFeatures(FeatureStrategy):
         out["is_new_customer"] = (out["tenure"] <= 12).astype(int)
         out["tenure_log"] = np.log1p(out["tenure"])
 
-        contract_mapping = {'Month-to-month': 0, 'One year': 1, 'Two year': 2}
-                               
+        contract_mapping = {"Month-to-month": 0, "One year": 1, "Two year": 2}
+
         out["contract_stability"] = out["contract"].map(contract_mapping)
 
-        out["new_customer_in_mounth_contract"] = ((out["contract"] == "Month-to-month") & (out["is_new_customer"])).astype(int)
-        out["risk_payment_monthly"] = ((out["paymentmethod"] == "Electronic check") & (out["contract"] == "Month-to-month")).astype(int)
-        out["new_customer_risk_payment_monthly"] = (out["risk_payment_monthly"] & out["is_new_customer"]).astype(int)
+        out["new_customer_in_mounth_contract"] = (
+            (out["contract"] == "Month-to-month") & (out["is_new_customer"])
+        ).astype(int)
+        out["risk_payment_monthly"] = (
+            (out["paymentmethod"] == "Electronic check") & (out["contract"] == "Month-to-month")
+        ).astype(int)
+        out["new_customer_risk_payment_monthly"] = (
+            out["risk_payment_monthly"] & out["is_new_customer"]
+        ).astype(int)
 
-        out["fiber_high_cost"] = ((out["internetservice"] == "Fiber optic") & (out["monthlycharges"] > self.monthly_median)).astype(int)
-        out["fiber_premium_monthly"] = ((out["internetservice"] == "Fiber optic") & (out["contract"] == "Month-to-month")).astype(int)
-        out["fiber_premium_monthly_new_customer"] = (out["fiber_premium_monthly"] & out["is_new_customer"]).astype(int)
+        out["fiber_high_cost"] = (
+            (out["internetservice"] == "Fiber optic")
+            & (out["monthlycharges"] > self.monthly_median)
+        ).astype(int)
+        out["fiber_premium_monthly"] = (
+            (out["internetservice"] == "Fiber optic") & (out["contract"] == "Month-to-month")
+        ).astype(int)
+        out["fiber_premium_monthly_new_customer"] = (
+            out["fiber_premium_monthly"] & out["is_new_customer"]
+        ).astype(int)
 
         out["avg_ticket"] = out["totalcharges"] / (out["tenure"] + 1)
         out["charge_ratio"] = out["monthlycharges"] / (out["avg_ticket"] + EPS)
 
-        service_cols = ["onlinesecurity","onlinebackup","deviceprotection","techsupport","streamingtv","streamingmovies"]
+        service_cols = [
+            "onlinesecurity",
+            "onlinebackup",
+            "deviceprotection",
+            "techsupport",
+            "streamingtv",
+            "streamingmovies",
+        ]
         missing_services = set(service_cols) - set(out.columns)
         if missing_services:
             logger.warning(f"Colunas de serviço ausentes: {missing_services}")
@@ -89,7 +110,9 @@ class ChurnFeatures(FeatureStrategy):
         out["num_services"] = out[valid_service_cols].sum(axis=1)
         out["low_engagement"] = (out["num_services"] <= 2).astype(int)
 
-        out["high_cost_low_engagement"] = ((out["monthlycharges"] > self.monthly_median) & (out["num_services"] <= 2)).astype(int)
+        out["high_cost_low_engagement"] = (
+            (out["monthlycharges"] > self.monthly_median) & (out["num_services"] <= 2)
+        ).astype(int)
         out["is_auto_payment"] = (
             out["paymentmethod"].astype(str).str.lower().str.contains("automatic", regex=False)
         ).astype(int)

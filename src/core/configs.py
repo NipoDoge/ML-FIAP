@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     Caminhos por omissão assumem árvore com código e dados em ``src/`` (ver README).
     """
+
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
         env_file=(
@@ -30,9 +31,11 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-    
+
     # Caminhos (relativos ao CWD; no Docker, WORKDIR é a raiz do repo em /var/www)
-    path_data: str = Field(default="src/data/", validation_alias="PATH_DATA", description="Path para dados brutos")
+    path_data: str = Field(
+        default="src/data/", validation_alias="PATH_DATA", description="Path para dados brutos"
+    )
     path_data_preprocessed: str = Field(
         default="src/data/pre_processed/", validation_alias="PATH_DATA_PREPROCESSED"
     )
@@ -53,26 +56,44 @@ class Settings(BaseSettings):
         validation_alias="MLFLOW_ARTIFACT_ROOT",
         description="Artefactos no host; Docker compose usa /mlflow/artifacts (mesmo bind mount).",
     )
-    
-    debug: bool = Field(default=False,validation_alias="DEBUG",description="Ativa modo debug"    )
-    test_size: float = Field(default=0.2,validation_alias="TEST_SIZE",description="Proporção de teste (0.0 a 1.0)")
-    random_state: int = Field(default=42,validation_alias="RANDOM_STATE")
+
+    debug: bool = Field(default=False, validation_alias="DEBUG", description="Ativa modo debug")
+    test_size: float = Field(
+        default=0.2, validation_alias="TEST_SIZE", description="Proporção de teste (0.0 a 1.0)"
+    )
+    random_state: int = Field(default=42, validation_alias="RANDOM_STATE")
 
     objective: str = Field(
         default="churn",
         validation_alias="OBJECTIVE",
         description="Domínio ML quando o endpoint não aceita objective no formulário (baseline na API).",
     )
-    
-    use_mlp_for_prediction: bool = Field(default=True, validation_alias="USE_MLP_FOR_PREDICTION", description="Usar MLP para predição")
+
+    use_mlp_for_prediction: bool = Field(
+        default=True,
+        validation_alias="USE_MLP_FOR_PREDICTION",
+        description="Usar MLP para predição",
+    )
     project_name: str = Field(validation_alias="PROJECT_NAME", description="Nome do projeto")
-    project_version: str = Field(validation_alias="PROJECT_VERSION", description="Versão do projeto")
-    
-    database_user: str = Field(validation_alias="DATABASE_USER", description="Usuário do banco de dados")
-    database_pass: str = Field(validation_alias="DATABASE_PASS", description="Senha do banco de dados")
-    database_server: str = Field(validation_alias="DATABASE_SERVER", description="Servidor do banco de dados")
-    database_port: int = Field(validation_alias="DATABASE_PORT", description="Porta do banco de dados")
-    database_name: str = Field(validation_alias="DATABASE_NAME", description="Nome do banco de dados")
+    project_version: str = Field(
+        validation_alias="PROJECT_VERSION", description="Versão do projeto"
+    )
+
+    database_user: str = Field(
+        validation_alias="DATABASE_USER", description="Usuário do banco de dados"
+    )
+    database_pass: str = Field(
+        validation_alias="DATABASE_PASS", description="Senha do banco de dados"
+    )
+    database_server: str = Field(
+        validation_alias="DATABASE_SERVER", description="Servidor do banco de dados"
+    )
+    database_port: int = Field(
+        validation_alias="DATABASE_PORT", description="Porta do banco de dados"
+    )
+    database_name: str = Field(
+        validation_alias="DATABASE_NAME", description="Nome do banco de dados"
+    )
     airflow_database_name: str = Field(
         default="airflow",
         validation_alias="AIRFLOW_DATABASE_NAME",
@@ -85,26 +106,57 @@ class Settings(BaseSettings):
     )
 
     database_url: str | None = None
-    
+
     jwt_secret: str = Field(validation_alias="SECRET", description="Chave secreta JWT")
     algorithm: str = Field(validation_alias="ALGORITHM", description="Algoritmo JWT")
-    access_token_expire_minutes: int = Field(validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES", description="Minutos para expiração do token de acesso")
+    access_token_expire_minutes: int = Field(
+        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
+        description="Minutos para expiração do token de acesso",
+    )
 
-    log_http_requests: bool = Field(default=True,validation_alias="LOG_HTTP_REQUESTS",description="Log de método, path, status e latência por requisição")
+    log_http_requests: bool = Field(
+        default=True,
+        validation_alias="LOG_HTTP_REQUESTS",
+        description="Log de método, path, status e latência por requisição",
+    )
 
-    log_http_requests_file: bool = Field(default=True, validation_alias="LOG_HTTP_REQUESTS_FILE", description="Persistir linhas JSONL de acesso em path_api_request_logs/access.jsonl")
-    path_api_request_logs: str = Field(default="logs/api_requests", validation_alias="PATH_API_REQUEST_LOGS", description="Diretório dos arquivos access.jsonl (rotação automática)")
-    log_http_requests_max_bytes: int = Field(default=5_242_880, validation_alias="LOG_HTTP_REQUESTS_MAX_BYTES", description="Tamanho máximo de access.jsonl antes da rotação (~5 MiB)")
-    log_http_requests_backup_count: int = Field(default=5, validation_alias="LOG_HTTP_REQUESTS_BACKUP_COUNT", description="Número de arquivos access.jsonl.* retidos após rotação")
+    log_http_requests_file: bool = Field(
+        default=True,
+        validation_alias="LOG_HTTP_REQUESTS_FILE",
+        description="Persistir linhas JSONL de acesso em path_api_request_logs/access.jsonl",
+    )
+    path_api_request_logs: str = Field(
+        default="logs/api_requests",
+        validation_alias="PATH_API_REQUEST_LOGS",
+        description="Diretório dos arquivos access.jsonl (rotação automática)",
+    )
+    log_http_requests_max_bytes: int = Field(
+        default=5_242_880,
+        validation_alias="LOG_HTTP_REQUESTS_MAX_BYTES",
+        description="Tamanho máximo de access.jsonl antes da rotação (~5 MiB)",
+    )
+    log_http_requests_backup_count: int = Field(
+        default=5,
+        validation_alias="LOG_HTTP_REQUESTS_BACKUP_COUNT",
+        description="Número de arquivos access.jsonl.* retidos após rotação",
+    )
     path_maintenance_reports: str = Field(
         default="src/artifacts/reports",
         validation_alias="PATH_MAINTENANCE_REPORTS",
         description="Saídas dos scripts de manutenção (latência, drift, relatórios)",
     )
 
-    airflow_base_url: str = Field(default="http://airflow-webserver:8080", validation_alias="AIRFLOW_BASE_URL", description="URL base do Airflow")
-    airflow_user: str = Field(default="airflow", validation_alias="AIRFLOW_USER", description="Usuário do Airflow")
-    airflow_password: str = Field(default="airflow", validation_alias="AIRFLOW_PASSWORD", description="Senha do Airflow")
+    airflow_base_url: str = Field(
+        default="http://airflow-webserver:8080",
+        validation_alias="AIRFLOW_BASE_URL",
+        description="URL base do Airflow",
+    )
+    airflow_user: str = Field(
+        default="airflow", validation_alias="AIRFLOW_USER", description="Usuário do Airflow"
+    )
+    airflow_password: str = Field(
+        default="airflow", validation_alias="AIRFLOW_PASSWORD", description="Senha do Airflow"
+    )
     ml_shared_path: str = Field(
         default="ml_data/uploads",
         validation_alias="ML_SHARED_PATH",
@@ -123,7 +175,9 @@ class Settings(BaseSettings):
         description="URL base do worker HTTP de recomendação (ex.: http://worker_recommendation:8010).",
     )
 
-    environment: str = Field(default="development", validation_alias="ENVIRONMENT", description="Ambiente de execução")
+    environment: str = Field(
+        default="development", validation_alias="ENVIRONMENT", description="Ambiente de execução"
+    )
 
     sync_fe_tune_max_minutes: int = Field(
         default=2,
@@ -153,9 +207,25 @@ class Settings(BaseSettings):
         ),
     )
 
+    @field_validator("debug", mode="before")
+    @classmethod
+    def _normalize_debug(cls, v: object, info: ValidationInfo) -> object:
+        if isinstance(v, str):
+            key = v.strip().lower()
+            if key in {"", "0", "false", "no", "off", "release", "prod", "production"}:
+                return False
+            if key in {"1", "true", "yes", "on", "debug", "dev", "development"}:
+                return True
+            raise ValueError(
+                f"{info.field_name} deve ser booleano ou um modo conhecido. Recebido: {v!r}."
+            )
+        return v
+
     @field_validator("ml_pipeline_joblib_backend", mode="before")
     @classmethod
-    def _normalize_ml_pipeline_joblib_backend(cls, v: object, info: ValidationInfo) -> Literal["auto", "threading", "loky", "multiprocessing"]:
+    def _normalize_ml_pipeline_joblib_backend(
+        cls, v: object, info: ValidationInfo
+    ) -> Literal["auto", "threading", "loky", "multiprocessing"]:
         if v is None or (isinstance(v, str) and not v.strip()):
             return "auto"
         if not isinstance(v, str):
@@ -163,7 +233,9 @@ class Settings(BaseSettings):
         key = v.strip().lower()
         allowed = frozenset({"auto", "threading", "loky", "multiprocessing"})
         if key not in allowed:
-            raise ValueError(f"{info.field_name} deve ser um de {sorted(allowed)}. Recebido: {v!r}.")
+            raise ValueError(
+                f"{info.field_name} deve ser um de {sorted(allowed)}. Recebido: {v!r}."
+            )
         return key  # type: ignore[return-value]
 
     def resolved_joblib_parallel_backend_for_sklearn(self) -> str | None:
@@ -185,9 +257,9 @@ class Settings(BaseSettings):
         return self.environment.strip().lower() in {"prd", "prod", "production"}
 
     def get_log_level(self) -> int:
-        """Retorna o nível de logging baseado em debug""" 
+        """Retorna o nível de logging baseado em debug"""
         return logging.DEBUG if self.debug else logging.INFO
-    
+
     @model_validator(mode="after")
     def set_database_url(self):
         self.database_url = (
@@ -198,7 +270,7 @@ class Settings(BaseSettings):
         if not (self.ml_project_root or "").strip():
             self.ml_project_root = str(_REPO_ROOT)
         return self
-    
+
 
 # Instância global (singleton pattern)
-settings:Settings = Settings()
+settings: Settings = Settings()

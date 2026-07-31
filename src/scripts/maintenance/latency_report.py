@@ -9,6 +9,7 @@ Saída: duas seções no CSV
 
 SLO padrão: p95 de /predict < 300ms (ajustável via argumento --slo-ms).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -63,7 +64,9 @@ def _normalize_latency_rows(raw: list[dict]) -> pd.DataFrame:
             {
                 "timestamp": r.get("ts") or r.get("timestamp"),
                 "latency_ms": float(r["duration_ms"]),
-                "status_code": r.get("status") if r.get("status") is not None else r.get("status_code"),
+                "status_code": r.get("status")
+                if r.get("status") is not None
+                else r.get("status_code"),
                 "request_id": r.get("request_id"),
                 "path": r.get("path", ""),
             }
@@ -85,9 +88,7 @@ def _build_summary(df: pd.DataFrame, label: str, slo_p95_ms: float) -> dict:
         return {}
     q = df["latency_ms"].quantile([0.5, 0.9, 0.95, 0.99])
     p95 = float(q.loc[0.95])
-    error_mask = df["status_code"].apply(
-        lambda s: isinstance(s, (int, float)) and s >= 400
-    )
+    error_mask = df["status_code"].apply(lambda s: isinstance(s, (int, float)) and s >= 400)
     error_rate = round(error_mask.sum() / len(df) * 100, 2)
     return {
         "route": label,

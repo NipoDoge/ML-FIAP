@@ -14,6 +14,7 @@ Interpretação do PSI
 Referências de threshold: literatura padrão de monitoramento de modelos
 (Siddiqi 2006; amplamente adotado em credit scoring e MLOps).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -62,15 +63,21 @@ def _load_predictions_features(path: Path) -> pd.DataFrame:
     if "input_data" in df.columns:
         parsed = df["input_data"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
         return pd.json_normalize(parsed)
-    drop_cols = [c for c in ("id", "prediction", "probability", "pipeline_run_id") if c in df.columns]
+    drop_cols = [
+        c for c in ("id", "prediction", "probability", "pipeline_run_id") if c in df.columns
+    ]
     return df.drop(columns=drop_cols, errors="ignore")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Drift treino vs predições (CSV)")
     parser.add_argument("--train-csv", required=True, type=Path, help="CSV de treino (referência)")
-    parser.add_argument("--predictions-csv", required=True, type=Path, help="Export de predictions ou features")
-    parser.add_argument("--target-col", default="target", help="Coluna alvo no treino (removida na comparação)")
+    parser.add_argument(
+        "--predictions-csv", required=True, type=Path, help="Export de predictions ou features"
+    )
+    parser.add_argument(
+        "--target-col", default="target", help="Coluna alvo no treino (removida na comparação)"
+    )
     args = parser.parse_args()
 
     train = pd.read_csv(args.train_csv)
@@ -81,7 +88,9 @@ def main() -> None:
 
     prod = _load_predictions_features(args.predictions_csv)
 
-    numeric_cols = [c for c in train.columns if c in prod.columns and pd.api.types.is_numeric_dtype(train[c])]
+    numeric_cols = [
+        c for c in train.columns if c in prod.columns and pd.api.types.is_numeric_dtype(train[c])
+    ]
     if not numeric_cols:
         print("Nenhuma coluna numérica em comum entre treino e produção.", file=sys.stderr)
         sys.exit(1)
@@ -97,7 +106,10 @@ def main() -> None:
         try:
             psi = _calculate_psi(ref, cur)
         except ValueError:
-            print(f"  [skip] '{col}' — poucos valores únicos, PSI instável (feature provavelmente binária).", file=sys.stderr)
+            print(
+                f"  [skip] '{col}' — poucos valores únicos, PSI instável (feature provavelmente binária).",
+                file=sys.stderr,
+            )
             skipped.append(col)
             continue
         rows.append({"feature": col, "psi": round(psi, 6), "status": _psi_status(psi)})
@@ -110,11 +122,15 @@ def main() -> None:
 
     # Linha de resumo agregado no topo
     mean_psi = psi_df["psi"].mean()
-    summary_row = pd.DataFrame([{
-        "feature": "** RESUMO **",
-        "psi": round(mean_psi, 6),
-        "status": _psi_status(mean_psi),
-    }])
+    summary_row = pd.DataFrame(
+        [
+            {
+                "feature": "** RESUMO **",
+                "psi": round(mean_psi, 6),
+                "status": _psi_status(mean_psi),
+            }
+        ]
+    )
     counts = psi_df["status"].value_counts().to_dict()
     n_ok = counts.get("ok", 0)
     n_warning = counts.get("warning", 0)
@@ -136,9 +152,13 @@ def main() -> None:
     if n_critical > 0:
         critical_feats = psi_df[psi_df["status"] == "critical"]["feature"].tolist()
         print(f"\n⚠ CRITICAL — {n_critical} feature(s) com drift significativo: {critical_feats}")
-        print("  Decisão sugerida: avaliar retreino com dados recentes e reavaliar drift após novo deploy.")
+        print(
+            "  Decisão sugerida: avaliar retreino com dados recentes e reavaliar drift após novo deploy."
+        )
     elif n_warning > 0:
-        print(f"\n⚡ WARNING — {n_warning} feature(s) com mudança moderada. Aumentar frequência de monitoramento.")
+        print(
+            f"\n⚡ WARNING — {n_warning} feature(s) com mudança moderada. Aumentar frequência de monitoramento."
+        )
     else:
         print("\n✓ Todas as features dentro do limite aceitável.")
 

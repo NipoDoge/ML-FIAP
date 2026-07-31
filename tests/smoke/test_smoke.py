@@ -2,6 +2,7 @@
 Smoke Tests - Quick integration tests covering main application flows.
 These tests verify that critical endpoints work end-to-end.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -19,6 +20,7 @@ from platform_ring.schemas.contracts import (
 
 class DummyUser:
     """Mock user for testing"""
+
     def __init__(self, id=1, role_id=1):
         self.id = id
         self.role_id = role_id
@@ -26,6 +28,7 @@ class DummyUser:
 
 class MockRegisteredUser:
     """Mock registered user for auth tests"""
+
     def __init__(self, id, name, email, active=True, role_id=1):
         self.id = id
         self.name = name

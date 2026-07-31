@@ -42,7 +42,8 @@ class FeatureStrategy(ABC):
         if missing:
             logger.error(f"Colunas obrigatórias ausentes para {self.__class__.__name__}: {missing}")
             raise ValueError(
-                f"Dataset incompatível com {self.__class__.__name__}. "
-                f"Colunas ausentes: {missing}"
+                f"Dataset incompatível com {self.__class__.__name__}. Colunas ausentes: {missing}"
             )
-        logger.info(f"Validação OK — todas as colunas obrigatórias presentes para {self.__class__.__name__}")
+        logger.info(
+            f"Validação OK — todas as colunas obrigatórias presentes para {self.__class__.__name__}"
+        )

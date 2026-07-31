@@ -9,7 +9,9 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def merge_run_conf(context: dict, *, variable_key: str, fallback_keys: tuple[tuple[str, str], ...] = ()) -> dict[str, Any]:
+def merge_run_conf(
+    context: dict, *, variable_key: str, fallback_keys: tuple[tuple[str, str], ...] = ()
+) -> dict[str, Any]:
     """
     Defaults de Airflow Variable + overrides em ``dag_run.conf``.
 

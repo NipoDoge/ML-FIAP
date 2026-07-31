@@ -33,7 +33,9 @@ class ArtifactManifest:
     def to_json_file(self, path: str | Path) -> None:
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        target.write_text(
+            json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ArtifactManifest:

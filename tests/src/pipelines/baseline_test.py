@@ -214,16 +214,22 @@ def test_prepare_and_train_trains_model(monkeypatch, tmp_path):
         def __exit__(self, exc_type, exc_val, exc_tb):
             return False
 
-    monkeypatch.setattr(baseline_module, "mlflow", SimpleNamespace(
-        get_experiment_by_name=lambda name: None,
-        create_experiment=lambda *args, **kwargs: "exp",
-        set_experiment=lambda *args, **kwargs: None,
-        start_run=lambda *args, **kwargs: DummyRun(),
-        log_params=lambda params: metrics_record.setdefault("params", params),
-        log_metrics=lambda metrics: metrics_record.setdefault("metrics", metrics),
-        log_metric=lambda name, value: metrics_record.setdefault(name, value),
-        sklearn=SimpleNamespace(log_model=lambda *args, **kwargs: metrics_record.setdefault("model_logged", True)),
-    ))
+    monkeypatch.setattr(
+        baseline_module,
+        "mlflow",
+        SimpleNamespace(
+            get_experiment_by_name=lambda name: None,
+            create_experiment=lambda *args, **kwargs: "exp",
+            set_experiment=lambda *args, **kwargs: None,
+            start_run=lambda *args, **kwargs: DummyRun(),
+            log_params=lambda params: metrics_record.setdefault("params", params),
+            log_metrics=lambda metrics: metrics_record.setdefault("metrics", metrics),
+            log_metric=lambda name, value: metrics_record.setdefault(name, value),
+            sklearn=SimpleNamespace(
+                log_model=lambda *args, **kwargs: metrics_record.setdefault("model_logged", True)
+            ),
+        ),
+    )
 
     baseline.prepare_and_train()
 
@@ -247,12 +253,17 @@ def test_save_writes_preprocessed_csv_and_model(monkeypatch, tmp_path):
     baseline.path_data_preprocessed = str(tmp_path / "preprocessed")
     baseline.path_model = str(tmp_path / "models")
 
-    monkeypatch.setattr(baseline_module, "mlflow", SimpleNamespace(log_artifact=lambda *args, **kwargs: None))
+    monkeypatch.setattr(
+        baseline_module, "mlflow", SimpleNamespace(log_artifact=lambda *args, **kwargs: None)
+    )
 
     baseline.save()
 
     assert os.path.exists(tmp_path / "preprocessed" / "baseline_sample.csv")
-    assert any(path.name.startswith("baseline_model_target_now") for path in (tmp_path / "models").iterdir())
+    assert any(
+        path.name.startswith("baseline_model_target_now")
+        for path in (tmp_path / "models").iterdir()
+    )
 
 
 def test_save_artifacts_moves_csv_and_graph_files(tmp_path):

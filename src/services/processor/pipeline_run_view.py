@@ -115,11 +115,14 @@ def _build_inference_fe(run: PipelineRuns, metrics: dict[str, Any]) -> dict[str,
             "O sklearn permanece como benchmark no comparativo desta run."
         )
     else:
-        promoted_name = f"{best_name} (tuned)" if best_name else (predict_model_key or "modelo desconhecido")
+        promoted_name = (
+            f"{best_name} (tuned)" if best_name else (predict_model_key or "modelo desconhecido")
+        )
         explain = (
             f"Modelo servido / escolhido para inferência: pipeline sklearn "
-            f"({best_name} após tuning)." if best_name else
-            "Modelo servido / escolhido para inferência: pipeline sklearn (após tuning)."
+            f"({best_name} após tuning)."
+            if best_name
+            else "Modelo servido / escolhido para inferência: pipeline sklearn (após tuning)."
         )
         if metrics.get("mlp_training"):
             explain += (

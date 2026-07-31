@@ -21,7 +21,9 @@ def task_run_recommendation(**context) -> None:
     """Executa treino no worker integrado (Docker) ou in-process (dev sem worker)."""
     ti = context["task_instance"]
     domain = ti.xcom_pull(key="domain", task_ids="validate_dispatch")
-    user_id = int(ti.xcom_pull(key="user_id", task_ids="validate_dispatch") or DEFAULT_PIPELINE_USER_ID)
+    user_id = int(
+        ti.xcom_pull(key="user_id", task_ids="validate_dispatch") or DEFAULT_PIPELINE_USER_ID
+    )
 
     conf = merge_run_conf(context, variable_key="ml_training_dispatch_conf")
     train_params = flatten_dispatch_train_params(conf)

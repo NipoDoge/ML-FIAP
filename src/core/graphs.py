@@ -211,12 +211,7 @@ class Graphs:
                 bins=[-0.001, 12, 24, 48, 72, 1e9],
                 labels=["0–12", "13–24", "25–48", "49–72", "73+"],
             )
-            tb = (
-                df.assign(_b=bins)
-                .groupby("_b", observed=False)["_y_churn"]
-                .mean()
-                * 100.0
-            )
+            tb = df.assign(_b=bins).groupby("_b", observed=False)["_y_churn"].mean() * 100.0
             fig, ax = plt.subplots(figsize=(8, 5))
             tb.plot(kind="bar", ax=ax, color="teal", rot=20)
             ax.set_ylabel("Taxa de churn (%)")
@@ -326,9 +321,12 @@ class Graphs:
         _safe("churn_contract_x_internet", _cxi)
 
         if model_pipeline is not None:
-            _safe("lr_coeff_importance", lambda: Graphs.build_lr_coeff_importance_bars(
-                model_pipeline, run_stamp, root, top_k=25
-            ))
+            _safe(
+                "lr_coeff_importance",
+                lambda: Graphs.build_lr_coeff_importance_bars(
+                    model_pipeline, run_stamp, root, top_k=25
+                ),
+            )
         else:
             logger.debug(
                 "EDA churn: sem modelo no view_data; importância LR será gerada após o treino."
@@ -386,12 +384,8 @@ class Graphs:
             return None
         ap = float(average_precision_score(y_true, y_score))
         fig, ax = plt.subplots(figsize=(7, 6))
-        PrecisionRecallDisplay.from_predictions(
-            y_true, y_score, ax=ax, name="LogisticRegression"
-        )
+        PrecisionRecallDisplay.from_predictions(y_true, y_score, ax=ax, name="LogisticRegression")
         ax.set_title(f"Precision–Recall ({split_label}) — AP = {ap:.4f}")
         ax.set_xlabel("Recall")
         ax.set_ylabel("Precision")
-        return Graphs._save_fig(
-            fig, root, f"precision_recall_{split_label}_{run_stamp}.png"
-        )
+        return Graphs._save_fig(fig, root, f"precision_recall_{split_label}_{run_stamp}.png")

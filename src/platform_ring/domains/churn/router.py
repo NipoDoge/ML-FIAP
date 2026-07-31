@@ -7,7 +7,17 @@ import uuid
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
@@ -47,7 +57,9 @@ def _schedule_remove(path: str) -> None:
         pass
 
 
-@router.post("/predict", status_code=status.HTTP_200_OK, response_model=platform_schemas.PredictResponse)
+@router.post(
+    "/predict", status_code=status.HTTP_200_OK, response_model=platform_schemas.PredictResponse
+)
 async def churn_predict(
     payload: ChurnFeaturesInput,
     db: AsyncSession = Depends(get_session),
@@ -58,7 +70,11 @@ async def churn_predict(
     return await predict_for_domain_route(db, domain=DOMAIN, features=features, user=user_logged)
 
 
-@router.post("/admin/promote", status_code=status.HTTP_201_CREATED, response_model=platform_schemas.DeployedModelResponse)
+@router.post(
+    "/admin/promote",
+    status_code=status.HTTP_201_CREATED,
+    response_model=platform_schemas.DeployedModelResponse,
+)
 async def churn_promote(
     db: AsyncSession = Depends(get_session),
     admin: users_models = Depends(require_admin),
@@ -96,7 +112,11 @@ async def churn_deployment_history(
     return await deployment_history(db, domain=DOMAIN)
 
 
-@router.post("/admin/rollback", status_code=status.HTTP_200_OK, response_model=platform_schemas.DeployedModelResponse)
+@router.post(
+    "/admin/rollback",
+    status_code=status.HTTP_200_OK,
+    response_model=platform_schemas.DeployedModelResponse,
+)
 async def churn_rollback(
     db: AsyncSession = Depends(get_session),
     admin: users_models = Depends(require_admin),
@@ -111,7 +131,9 @@ async def churn_rollback(
 )
 async def churn_train_trigger(
     file: UploadFile = File(..., description="CSV Telco (obrigatório)."),
-    optimization_metric: Literal["accuracy", "precision", "recall", "f1", "roc_auc"] = Form("recall"),
+    optimization_metric: Literal["accuracy", "precision", "recall", "f1", "roc_auc"] = Form(
+        "recall"
+    ),
     min_precision: float | None = Form(None),
     min_roc_auc: float | None = Form(None),
     tuning_n_iter: int | None = Form(None),
@@ -201,7 +223,9 @@ async def churn_train_baseline_sync(
 )
 async def churn_train_fe_sync(
     background_tasks: BackgroundTasks,
-    optimization_metric: Literal["accuracy", "precision", "recall", "f1", "roc_auc"] = Form("recall"),
+    optimization_metric: Literal["accuracy", "precision", "recall", "f1", "roc_auc"] = Form(
+        "recall"
+    ),
     min_precision: float | None = Form(None),
     min_roc_auc: float | None = Form(None),
     tuning_n_iter: int | None = Form(None),

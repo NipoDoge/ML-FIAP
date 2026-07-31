@@ -82,8 +82,12 @@ def run_baseline_job(
     pipeline.save_artifacts()
 
     if defer_global_preprocess_contract:
-        manifest_path = os.path.abspath(os.path.join(pipeline.snapshot_path, pipeline.contract_manifest_name))
-        sample_path = os.path.abspath(os.path.join(pipeline.snapshot_path, pipeline.contract_sample_name))
+        manifest_path = os.path.abspath(
+            os.path.join(pipeline.snapshot_path, pipeline.contract_manifest_name)
+        )
+        sample_path = os.path.abspath(
+            os.path.join(pipeline.snapshot_path, pipeline.contract_sample_name)
+        )
     else:
         manifest_path = _resolve_artifact_path(
             os.path.join(pipeline.path_data_preprocessed, pipeline.contract_manifest_name)
@@ -191,7 +195,9 @@ def run_tabular_pipeline(params: dict[str, Any]) -> TabularPipelineResult:
             csv_path=str(csv_path),
             decision_threshold=params.get("decision_threshold"),
             artifact_name_suffix=str(params.get("artifact_name_suffix", "")),
-            defer_global_preprocess_contract=bool(params.get("defer_global_preprocess_contract", True)),
+            defer_global_preprocess_contract=bool(
+                params.get("defer_global_preprocess_contract", True)
+            ),
             run_timestamp=params.get("baseline_run_timestamp"),
         )
         manifest_path = baseline_result.manifest_path

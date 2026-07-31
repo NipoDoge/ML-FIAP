@@ -27,6 +27,7 @@ Saída: CSV timestampado emitido por ``drift_report.py`` em ``PATH_MAINTENANCE_R
 Trigger manual (UI) ou ``airflow dags trigger ml_drift_monitoring``.
 Schedule por omissão: ``None`` (activar cron na DAG se quiseres corrida semanal).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -186,7 +187,9 @@ def task_export_predictions(**context) -> str:
     os.makedirs(out_dir, exist_ok=True)
     safe_run_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in context["dag_run"].run_id)
     stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    pred_path = os.path.abspath(os.path.join(out_dir, f"drift_predictions_export_{stamp}_{safe_run_id}.csv"))
+    pred_path = os.path.abspath(
+        os.path.join(out_dir, f"drift_predictions_export_{stamp}_{safe_run_id}.csv")
+    )
     df.to_csv(pred_path, index=False)
 
     log.info("Exportadas %s predições → %s", len(df), pred_path)
