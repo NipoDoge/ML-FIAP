@@ -354,19 +354,165 @@ docker exec airflow_scheduler airflow dags list | grep ml_training_dispatch
 
 ## 7. Apresentação à banca
 
-### Mensagem central (30 s)
+### Mensagem central (20 s)
 
 > Plataforma MLOps com **dois domínios**, arquitectura em **anéis**, API `/v1/domains/{domain}/…`, Airflow **`ml_training_dispatch`**, MLflow unificado, promote/rollback em Postgres e Registry como side-effect.
 
-### Roteiro demo (~15 min)
+### Roteiro para vídeo de até 5 min
+
+| Tempo | Cena | Fala sugerida |
+|-------|------|---------------|
+| 0:00–0:25 | README / Swagger | "Este projeto entrega uma plataforma MLOps fim a fim para dois problemas: churn no TC01 e recomendação no TC02. O contrato é sempre o mesmo: treinar, registrar, promover, predizer e, se necessário, fazer rollback." |
+| 0:25–1:05 | Diagrama / `docs/DOCUMENTACAO.md` | "A arquitetura foi separada em anéis: a API FastAPI cuida do produto e autenticação, o `ml_core_ring` registra domínios e engines, os executores treinam modelos pesados e o Airflow orquestra tudo pela DAG única `ml_training_dispatch`." |
+| 1:05–1:45 | Swagger tags `domain-churn` e `domain-recommendation` | "Em vez de rotas antigas por caso de uso, a plataforma atual expõe `/v1/domains/{domain}/...`. Isso permite plugar novos domínios mantendo as mesmas rotas de ciclo de vida: runs, promote, rollback, history e predict." |
+| 1:45–2:35 | TC02 / DVC / `params.yaml` | "No TC02, o domínio `recommendation` usa MovieLens como proxy de e-commerce. O pipeline DVC roda `preprocess -> feature_eng -> train -> evaluate`, compara Popularity, NMF e embedding PyTorch, e escolhe o campeão por métricas de ranking como Hit Rate@K, Recall@K, NDCG@K e MAP@K." |
+| 2:35–3:20 | Airflow + worker | "A API não treina modelos pesados inline. Ela dispara o Airflow, que envia o treino de recomendação para o `worker_recommendation`. O worker registra o run em `pipeline_runs`, grava artefatos e envia métricas para o MLflow." |
+| 3:20–4:15 | Swagger: train/sync, promote, predict | "Na demo curta, faço login como admin, treino rapidamente o `torch_embedding`, promovo o run ativo e chamo `/v1/domains/recommendation/predict` com `user_id` e `top_k`. A resposta traz `recommended_items` e o `pipeline_run_id` usado na inferência." |
+| 4:15–4:45 | MLflow | "No MLflow, o experimento `tc02_recommendation` concentra parâmetros, métricas e artefatos. No promote, o Registry recebe o modelo `tc02_recommender` como efeito colateral; a fonte de verdade para servir continua sendo `deployed_models` no Postgres." |
+| 4:45–5:00 | Fechamento | "O principal resultado é uma plataforma extensível: o churn e a recomendação usam modelos diferentes, mas compartilham autenticação, orquestração, rastreabilidade, promoção, rollback e predição online." |
+
+### Easy-run para vídeo curto
+
+Use este fluxo para gravar uma execução simples e demonstrável. Ele privilegia o caminho rápido de TC02 via worker/API; o DVC e o gate completo ficam como validações complementares.
+
+#### 1. Preparar ambiente
+
+```bash
+cd /caminho/para/Machine-Learning
+cp .env_example .env
+echo "AIRFLOW_UID=$(id -u)" >> .env
+make install-dev
+python3 scripts/validate_env.py
+```
+
+No `.env`, confirmar:
+
+```text
+ENVIRONMENT=development
+DATABASE_USER=admin
+DATABASE_PASS=admin1
+DATABASE_NAME=processing
+AIRFLOW_DATABASE_NAME=airflow
+MLFLOW_DATABASE_NAME=mlflow
+MLFLOW_TRACKING_URI=http://localhost:5000
+```
+
+#### 2. Subir stack
+
+```bash
+make docker-fresh
+docker compose ps
+docker exec airflow_scheduler airflow dags unpause ml_training_dispatch
+```
+
+Interfaces:
+
+| Serviço | URL | Login |
+|---------|-----|-------|
+| Swagger | http://localhost:8000/docs | `admin@admin.com` / `admin1` |
+| Airflow | http://localhost:8080 | `airflow` / `airflow` |
+| MLflow | http://localhost:5000 | sem login |
+| Dozzle | http://localhost:8888 | sem login |
+
+#### 3. Smoke rápido
+
+```bash
+curl -s http://localhost:8000/v1/health | python3 -m json.tool
+curl -s http://localhost:8010/health | python3 -m json.tool
+docker exec airflow_scheduler airflow dags list | grep ml_training_dispatch
+```
+
+#### 4. Login por terminal
+
+```bash
+export API=http://localhost:8000
+TOKEN=$(curl -s -X POST "$API/v1/auth/authenticate" \
+  -F username=admin@admin.com \
+  -F password=admin1 \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+```
+
+#### 5. Treino TC02 rápido
+
+```bash
+curl -s -X POST "$API/v1/domains/recommendation/admin/train/sync" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"train_models":["torch_embedding"],"n_epochs":1,"top_k":5,"mlflow_experiment":"tc02_recommendation"}' \
+  | python3 -m json.tool
+```
+
+Esperado: `status="completed"`, `champion_name="torch_embedding"`, `pipeline_run_id` e métricas de ranking.
+
+#### 6. Promover modelo
+
+```bash
+curl -s -X POST "$API/v1/domains/recommendation/admin/promote" \
+  -H "Authorization: Bearer $TOKEN" \
+  | python3 -m json.tool
+```
+
+Esperado: `domain="recommendation"`, `status="active"` e, idealmente, `mlflow_registry_model="tc02_recommender"`.
+
+#### 7. Predizer recomendações
+
+```bash
+curl -s -X POST "$API/v1/domains/recommendation/predict" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"top_k":5}' \
+  | python3 -m json.tool
+```
+
+Esperado: `recommended_items` com até 5 IDs e `pipeline_run_id` do modelo ativo.
+
+#### 8. Mostrar evidências finais
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$API/v1/domains/recommendation/admin/runs?status=completed" \
+  | python3 -m json.tool
+
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$API/v1/domains/recommendation/admin/deployments/history" \
+  | python3 -m json.tool
+```
+
+Abra também:
+
+- MLflow: `http://localhost:5000` → experimento `tc02_recommendation`
+- Airflow: `http://localhost:8080` → DAG `ml_training_dispatch`
+- Swagger: `http://localhost:8000/docs` → tags `domain-churn` e `domain-recommendation`
+
+#### 9. Validações complementares
+
+Pipeline reprodutível TC02:
+
+```bash
+make tc02-repro
+cat reports/recommendation/metrics.json | python3 -m json.tool
+```
+
+Gate automatizado da plataforma:
+
+```bash
+PYTHONPATH=src:. python3 -m pytest tests/platform_ring/ tests/ml_core_ring/ -q -o addopts=
+VALIDATE_API_PASSWORD=admin1 ./scripts/validate_platform.sh --skip-build
+```
+
+Resultado esperado do gate: `PASS: 46+`, `FAIL: 0`.
+
+### Roteiro demo estendido (~15 min)
 
 | # | Acção | Evidência |
 |---|-------|-----------|
 | 1 | Swagger | Tags `domain-churn`, `domain-recommendation` |
 | 2 | `validate_platform.sh` | 0 FAIL |
-| 3 | Churn predict | 200 + probabilidade |
-| 4 | MLflow | `tc02_recommender` Production |
-| 5 | Airflow | DAG success no histórico |
+| 3 | Recommendation train/sync | `pipeline_run_id`, métricas @K |
+| 4 | Recommendation promote/predict | `recommended_items` |
+| 5 | MLflow | `tc02_recommender` Production |
+| 6 | Airflow | DAG `ml_training_dispatch` no histórico |
+| 7 | Churn predict | 200 + probabilidade, se já houver deployment ativo |
 
 ### Perguntas frequentes
 
