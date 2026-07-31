@@ -548,15 +548,20 @@ Resultado esperado do gate: `PASS: 46+`, `FAIL: 0`.
 
 ## 9. Model Card — Recomendação (TC02)
 
+Model Card completo: [`MODEL_CARD_RECOMMENDATION.md`](MODEL_CARD_RECOMMENDATION.md).
+
 | Campo | Valor |
 |-------|-------|
 | Nome Registry | `tc02_recommender` |
-| Tipo | User-item embedding PyTorch |
+| Tipo | Recomendação user-item / ranking top-K |
+| Modelo principal | `torch_embedding` — embeddings usuário/item + MLP scorer PyTorch |
 | Dataset | MovieLens ml-latest-small |
 | Baselines | Popularity, NMF |
 | Métricas | Hit Rate@K, Precision@K, Recall@K, NDCG@K, MAP@K |
 
-**Limitações:** cold-start → popularidade; split temporal por utilizador; MovieLens ≠ catálogo e-commerce real.
+**Uso pretendido:** recomendar top-K itens para usuários conhecidos e demonstrar o ciclo MLOps do TC02.
+
+**Limitações:** cold-start → popularidade; split temporal por utilizador; MovieLens ≠ catálogo e-commerce real; sem diversidade/novidade como objetivo explícito.
 
 **Predict:** `POST /v1/domains/recommendation/predict` com `user_id` + `top_k`.
 
