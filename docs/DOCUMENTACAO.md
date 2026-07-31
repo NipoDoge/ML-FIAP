@@ -358,18 +358,19 @@ docker exec airflow_scheduler airflow dags list | grep ml_training_dispatch
 
 > Plataforma MLOps com **dois domínios**, arquitectura em **anéis**, API `/v1/domains/{domain}/…`, Airflow **`ml_training_dispatch`**, MLflow unificado, promote/rollback em Postgres e Registry como side-effect.
 
-### Roteiro para vídeo de até 5 min
+### Roteiro STAR para vídeo de até 5 min
 
-| Tempo | Cena | Fala sugerida |
-|-------|------|---------------|
-| 0:00–0:25 | README / Swagger | "Este projeto entrega uma plataforma MLOps fim a fim para dois problemas: churn no TC01 e recomendação no TC02. O contrato é sempre o mesmo: treinar, registrar, promover, predizer e, se necessário, fazer rollback." |
-| 0:25–1:05 | Diagrama / `docs/DOCUMENTACAO.md` | "A arquitetura foi separada em anéis: a API FastAPI cuida do produto e autenticação, o `ml_core_ring` registra domínios e engines, os executores treinam modelos pesados e o Airflow orquestra tudo pela DAG única `ml_training_dispatch`." |
-| 1:05–1:45 | Swagger tags `domain-churn` e `domain-recommendation` | "Em vez de rotas antigas por caso de uso, a plataforma atual expõe `/v1/domains/{domain}/...`. Isso permite plugar novos domínios mantendo as mesmas rotas de ciclo de vida: runs, promote, rollback, history e predict." |
-| 1:45–2:35 | TC02 / DVC / `params.yaml` | "No TC02, o domínio `recommendation` usa MovieLens como proxy de e-commerce. O pipeline DVC roda `preprocess -> feature_eng -> train -> evaluate`, compara Popularity, NMF e embedding PyTorch, e escolhe o campeão por métricas de ranking como Hit Rate@K, Recall@K, NDCG@K e MAP@K." |
-| 2:35–3:20 | Airflow + worker | "A API não treina modelos pesados inline. Ela dispara o Airflow, que envia o treino de recomendação para o `worker_recommendation`. O worker registra o run em `pipeline_runs`, grava artefatos e envia métricas para o MLflow." |
-| 3:20–4:15 | Swagger: train/sync, promote, predict | "Na demo curta, faço login como admin, treino rapidamente o `torch_embedding`, promovo o run ativo e chamo `/v1/domains/recommendation/predict` com `user_id` e `top_k`. A resposta traz `recommended_items` e o `pipeline_run_id` usado na inferência." |
-| 4:15–4:45 | MLflow | "No MLflow, o experimento `tc02_recommendation` concentra parâmetros, métricas e artefatos. No promote, o Registry recebe o modelo `tc02_recommender` como efeito colateral; a fonte de verdade para servir continua sendo `deployed_models` no Postgres." |
-| 4:45–5:00 | Fechamento | "O principal resultado é uma plataforma extensível: o churn e a recomendação usam modelos diferentes, mas compartilham autenticação, orquestração, rastreabilidade, promoção, rollback e predição online." |
+| Tempo | STAR | Cena / evidência | Fala sugerida |
+|-------|------|------------------|---------------|
+| 0:00–0:55 | **S — Situação** | README, Swagger ou topo da documentação | "O projeto nasceu de dois desafios de Machine Learning Engineering. No TC01, o problema era prever churn em telecom para apoiar ações de retenção. No TC02, o desafio evoluiu para recomendação user-item, usando MovieLens como proxy de e-commerce. O ponto comum entre os dois não era só treinar modelos, mas colocar esses modelos num fluxo operacional confiável." |
+| 0:55–1:35 | **T — Tarefa** | Mostrar `/v1/domains/churn` e `/v1/domains/recommendation` no Swagger | "A tarefa foi transformar esses casos em uma plataforma MLOps multi-domínio. Ela precisava manter o mesmo ciclo para problemas diferentes: treinar, registrar, promover, predizer e fazer rollback. Também precisava ter API autenticada, orquestração no Airflow, tracking no MLflow, persistência em Postgres e uma forma simples de plugar novos domínios." |
+| 1:35–2:20 | **A — Ação: arquitetura** | `docs/DOCUMENTACAO.md`, diagrama ou tabela de anéis | "Para resolver isso, separamos a solução em anéis. A API FastAPI ficou responsável pelo produto, autenticação e rotas. O `ml_core_ring` registra domínios, engines e contratos. Os executores concentram o treino pesado. E o Airflow centraliza a orquestração pela DAG `ml_training_dispatch`, que decide o fluxo com base no domínio." |
+| 2:20–3:05 | **A — Ação: TC02 ML** | `params.yaml`, `dvc.yaml`, pasta `domains/recommendation` | "No TC02, criamos o domínio `recommendation`. O pipeline DVC roda `preprocess -> feature_eng -> train -> evaluate`. Ele compara Popularity, NMF e um modelo de embeddings em PyTorch. A avaliação usa métricas de ranking como Hit Rate@K, Precision@K, Recall@K, NDCG@K e MAP@K, porque recomendação não é uma classificação simples: importa a ordem dos itens." |
+| 3:05–3:55 | **A — Ação: operação** | Swagger: `train/sync`, `promote`, `predict`; Airflow e worker | "Na operação, a API não treina modelos pesados inline. Para recomendação, o treino roda no `worker_recommendation`, acionado diretamente no modo sync de debug ou via Airflow. O run é gravado em `pipeline_runs`, os artefatos e métricas vão para o MLflow, e o promote cria um deployment ativo em `deployed_models`." |
+| 3:55–4:35 | **R — Resultado: demo** | Executar ou mostrar resposta de `/predict` | "O resultado é demonstrável pela API. Depois do login, treino rapidamente o `torch_embedding`, promovo o run ativo e chamo `/v1/domains/recommendation/predict` passando `user_id` e `top_k`. A resposta retorna `recommended_items`, além do `pipeline_run_id`, garantindo rastreabilidade entre predição, modelo promovido e treino." |
+| 4:35–5:00 | **R — Resultado: valor entregue** | MLflow `tc02_recommendation`, Registry `tc02_recommender`, histórico de deployments | "No final, entregamos uma plataforma extensível: churn e recomendação usam modelos diferentes, mas compartilham autenticação, orquestração, rastreabilidade, promoção, rollback e predição online. O MLflow registra o experimento `tc02_recommendation`, o Registry recebe `tc02_recommender` como efeito colateral, e a fonte de verdade do serving continua no Postgres." |
+
+**Frase de fechamento:** "Em resumo, o projeto saiu de modelos isolados para uma plataforma MLOps multi-domínio, pronta para demonstrar o ciclo completo de Machine Learning em produção: do treino ao consumo por API."
 
 ### Easy-run para vídeo curto
 
