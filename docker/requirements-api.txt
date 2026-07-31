@@ -51,12 +51,13 @@ matplotlib==3.10.8
 mlflow==3.10.1
 more-itertools==8.10.0
 netifaces==0.11.0
-numpy==2.1.1
+numpy==2.2.6
 oauthlib==3.2.0
 olefile==0.46
 packaging==26.0
 pandas==2.3.3
 passlib==1.7.4
+bcrypt==4.0.1
 pillow==12.1.1
 platformdirs==4.9.4
 prettytable==3.17.0

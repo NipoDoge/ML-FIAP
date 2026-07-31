@@ -100,6 +100,7 @@ dependencies = [
   "pandera==0.20.1",
   "parso==0.8.6",
   "passlib==1.7.4",
+  "bcrypt==4.0.1",
   "pexpect==4.9.0",
   "pillow==12.1.1",
   "platformdirs==4.9.4",

@@ -16,12 +16,13 @@
 #   ./scripts/validate_platform.sh --infra-only # só contentores e health
 #   ./scripts/validate_platform.sh --help
 #
-# Requisitos: docker, curl, python3 (check-rings opcional)
+# Requisitos: docker, curl, python3 ou PYTHON_BIN (check-rings opcional)
 # =============================================================================
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 # --- defaults ----------------------------------------------------------------
 SKIP_BUILD=0
@@ -59,33 +60,33 @@ require_cmd() {
   done
 }
 
-# JSON via python3 (sem depender de jq no host)
+# JSON via Python no host (sem depender de jq)
 json_field() {
-  python3 -c "import json,sys; d=json.loads(sys.argv[1]); v=d.get(sys.argv[2]); print('' if v is None else v)" "$1" "$2"
+  "$PYTHON_BIN" -c "import json,sys; d=json.loads(sys.argv[1]); v=d.get(sys.argv[2]); print('' if v is None else v)" "$1" "$2"
 }
 
 json_train_body() {
-  python3 -c "import json,sys; p=json.loads(sys.argv[1]); print(json.dumps({'domain':'recommendation','user_id':2,'params':p,'airflow_dag_run_id':sys.argv[2]}))" "$1" "$2"
+  "$PYTHON_BIN" -c "import json,sys; p=json.loads(sys.argv[1]); print(json.dumps({'domain':'recommendation','user_id':2,'params':p,'airflow_dag_run_id':sys.argv[2]}))" "$1" "$2"
 }
 
 json_dag_conf() {
-  python3 -c "import json,sys; p=json.loads(sys.argv[1]); c={'domain':'recommendation','user_id':2,'top_k':5}; c.update(p); print(json.dumps(c))" "$1"
+  "$PYTHON_BIN" -c "import json,sys; p=json.loads(sys.argv[1]); c={'domain':'recommendation','user_id':2,'top_k':5}; c.update(p); print(json.dumps(c))" "$1"
 }
 
 json_len_array() {
-  python3 -c "import json,sys; print(len(json.load(sys.stdin)))"
+  "$PYTHON_BIN" -c "import json,sys; print(len(json.load(sys.stdin)))"
 }
 
 json_reco_items_len() {
-  python3 -c "import json,sys; d=json.loads(sys.argv[1]); items=d.get('recommended_items') or []; print(len(items))" "$1"
+  "$PYTHON_BIN" -c "import json,sys; d=json.loads(sys.argv[1]); items=d.get('recommended_items') or []; print(len(items))" "$1"
 }
 
 json_has_key() {
-  python3 -c "import json,sys; d=json.loads(sys.stdin.read()); sys.exit(0 if sys.argv[1] in d else 1)" "$1"
+  "$PYTHON_BIN" -c "import json,sys; d=json.loads(sys.stdin.read()); sys.exit(0 if sys.argv[1] in d else 1)" "$1"
 }
 
 json_openapi_has_path() {
-  python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if sys.argv[1] in d.get('paths',{}) else 1)" "$1"
+  "$PYTHON_BIN" -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if sys.argv[1] in d.get('paths',{}) else 1)" "$1"
 }
 
 load_env() {
@@ -145,10 +146,17 @@ assert_http() {
 }
 
 wait_url() {
-  local label="$1" url="$2" max="${3:-120}" extra=("${@:4}")
+  local label="$1" url="$2" max="${3:-120}"
+  shift 3 || true
+  local extra=("$@")
   local i=0
   while [[ $i -lt $max ]]; do
-    if curl -sf "${extra[@]}" "$url" >/dev/null 2>&1; then
+    if (( ${#extra[@]} > 0 )); then
+      if curl -sf "${extra[@]}" "$url" >/dev/null 2>&1; then
+        log_pass "$label (ready em ${i}s)"
+        return 0
+      fi
+    elif curl -sf "$url" >/dev/null 2>&1; then
       log_pass "$label (ready em ${i}s)"
       return 0
     fi
@@ -214,12 +222,12 @@ dedupe_active_reco_runs() {
 phase_local() {
   [[ "$SKIP_LOCAL" -eq 1 ]] && { log_skip "Fase 0 — checks locais (--skip-local)"; return; }
   log_section "Fase 0 — Pré-requisitos locais"
-  if python3 scripts/check_ring_imports.py >/tmp/check_rings.out 2>&1; then
+  if "$PYTHON_BIN" scripts/check_ring_imports.py >/tmp/check_rings.out 2>&1; then
     log_pass "check_ring_imports (sem erros)"
   else
     log_fail "check_ring_imports" "ver /tmp/check_rings.out"
   fi
-  if PYTHONPATH=src:. python3 scripts/validate_env.py >/tmp/validate_env.out 2>&1; then
+  if PYTHONPATH=src:. "$PYTHON_BIN" scripts/validate_env.py >/tmp/validate_env.out 2>&1; then
     log_pass "validate_env (deps ML + paths TC02)"
   else
     log_fail "validate_env" "ver /tmp/validate_env.out"
@@ -270,9 +278,10 @@ phase_infra() {
   wait_url "pgAdmin" "http://localhost:5050" 30 || true
 
   # ENVIRONMENT no contentor API (train/trigger bloqueado em prd)
-  local env_api
+  local env_api env_api_lc
   env_api=$(docker exec api_processing printenv ENVIRONMENT 2>/dev/null || echo "unknown")
-  if [[ "${env_api,,}" == "prd" || "${env_api,,}" == "prod" || "${env_api,,}" == "production" ]]; then
+  env_api_lc=$(printf '%s' "$env_api" | tr '[:upper:]' '[:lower:]')
+  if [[ "$env_api_lc" == "prd" || "$env_api_lc" == "prod" || "$env_api_lc" == "production" ]]; then
     log_fail "API ENVIRONMENT=$env_api" "train/trigger via API retorna 403 — use ENVIRONMENT=development no .env"
   else
     log_pass "API ENVIRONMENT=$env_api (train/trigger permitido)"
@@ -448,7 +457,7 @@ phase_dag_e2e() {
   while [[ $elapsed -lt $DAG_TIMEOUT ]]; do
     state=$(curl -s -u "$AIRFLOW_USER:$AIRFLOW_PASSWORD" \
       "$AIRFLOW_BASE/api/v1/dags/ml_training_dispatch/dagRuns/$dag_run_id" \
-      | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('state') or 'unknown')")
+      | "$PYTHON_BIN" -c "import json,sys; d=json.load(sys.stdin); print(d.get('state') or 'unknown')")
     case "$state" in
       success)
         log_pass "DAG $dag_run_id concluído (success)"
@@ -622,7 +631,7 @@ print_summary() {
 # --- main --------------------------------------------------------------------
 main() {
   parse_args "$@"
-  require_cmd docker curl python3
+  require_cmd docker curl "$PYTHON_BIN"
   load_env
 
   if [[ "$INFRA_ONLY" -eq 0 && -z "$VALIDATE_API_PASSWORD" ]]; then
