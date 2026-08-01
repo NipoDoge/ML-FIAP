@@ -38,7 +38,6 @@ PYTHONPATH=src:. python3 -m pytest tests/platform_ring/ tests/ml_core_ring/ -q -
 VALIDATE_API_PASSWORD=admin1 ./scripts/validate_platform.sh --skip-build
 ```
 
-## Vídeos
+## Vídeo
 
-- STAR: https://youtu.be/UxTcH5kxdwc
-- Easy-run: https://youtu.be/_9VqWvDYOuk
+- STAR: https://youtu.be/h5Fn-4741No
