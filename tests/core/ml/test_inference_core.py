@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 import pytest
 
-from core.ml import engines  # noqa: F401
 import executors_ring  # noqa: F401 — registra torch_bundle
+from core.ml import engines  # noqa: F401
 from core.ml.artifact_manifest import ArtifactManifest
 from core.ml.inference_engine import ENGINE_REGISTRY, get_engine
 

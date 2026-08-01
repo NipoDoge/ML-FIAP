@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
+from executors_ring.recommendation.pipeline_runner import (
+    RecommendationPipelineRunner,
+    build_run_context,
+)
 from ml_core_ring.train_backend import (
     TrainBackendResult,
     TrainRequestContext,
     register_train_backend,
-)
-
-from executors_ring.recommendation.pipeline_runner import (
-    RecommendationPipelineRunner,
-    build_run_context,
 )
 
 

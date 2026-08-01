@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
+from pathlib import Path
 from typing import Literal
 
 import httpx
@@ -39,9 +41,9 @@ from platform_ring.domains.common import (
     promote_domain,
     rollback_domain,
 )
-from platform_ring.training_trigger import trigger_training_dag
-from platform_ring.schemas.churn_features import ChurnFeaturesInput
 from platform_ring.schemas import contracts as platform_schemas
+from platform_ring.schemas.churn_features import ChurnFeaturesInput
+from platform_ring.training_trigger import trigger_training_dag
 from services.processor import processor_service
 
 DOMAIN = "churn"
@@ -148,8 +150,7 @@ async def churn_train_trigger(
     filename = f"{DOMAIN}_{uuid.uuid4().hex[:8]}_{file.filename}"
     host_path = os.path.join(upload_dir, filename)
     content = await file.read()
-    with open(host_path, "wb") as f:
-        f.write(content)
+    await asyncio.to_thread(Path(host_path).write_bytes, content)
 
     csv_path_airflow = airflow_upload_path(filename)
 

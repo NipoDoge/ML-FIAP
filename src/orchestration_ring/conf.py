@@ -26,7 +26,7 @@ def merge_run_conf(
             defaults = json.loads(raw) if isinstance(raw, str) else dict(raw)
     except json.JSONDecodeError as exc:
         raise ValueError(f"Airflow Variable {variable_key!r} deve ser JSON válido: {exc}") from exc
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("Could not read %s: %s", variable_key, exc)
 
     for key, var_key in fallback_keys:
@@ -36,8 +36,8 @@ def merge_run_conf(
             value = Variable.get(var_key, default_var=None)
             if value:
                 defaults[key] = value
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Could not read fallback Airflow Variable %s: %s", var_key, exc)
 
     conf_run = context["dag_run"].conf or {}
     merged = {**defaults, **conf_run}

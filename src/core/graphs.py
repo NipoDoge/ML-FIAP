@@ -140,7 +140,7 @@ class Graphs:
             lab = idx.astype(str).str[len(prefix) :]
             lab = lab.where(mx > 0, "(referência / drop_first)")
             return lab.astype(str)
-        except Exception:
+        except (TypeError, ValueError):
             return None
 
     @staticmethod
@@ -169,7 +169,7 @@ class Graphs:
         def _safe(name: str, fn) -> None:
             try:
                 fn()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Gráfico %s não gerado: %s", name, e)
 
         def _save_name(fig, stem: str) -> None:
@@ -348,7 +348,7 @@ class Graphs:
             clf = pipeline.named_steps[classifier_step]
             names = pre.get_feature_names_out()
             coef = np.ravel(clf.coef_)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Importância LR: extração de coeficientes falhou: %s", e)
             return
         if len(names) != len(coef):

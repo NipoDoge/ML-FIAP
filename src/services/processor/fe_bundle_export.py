@@ -170,6 +170,6 @@ def log_fe_bundle_zip_to_mlflow_run(
         with mlflow.start_run(run_id=mlflow_run_id):
             mlflow.log_artifact(zip_path, artifact_path=artifact_subdir)
         return f"{artifact_subdir}/{os.path.basename(zip_path)}"
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("Falha ao registar ZIP FE no MLflow (run_id=%s): %s", mlflow_run_id, e)
         return None

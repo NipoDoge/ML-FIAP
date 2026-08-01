@@ -1,3 +1,3 @@
 """Shim — use ``ml_core_ring.prediction_result``."""
 
-from ml_core_ring.prediction_result import *  # noqa: F403, F401
+from ml_core_ring.prediction_result import *

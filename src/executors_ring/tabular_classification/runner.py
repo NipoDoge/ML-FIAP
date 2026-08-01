@@ -5,11 +5,10 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from core.configs import settings
-
 from executors_ring.tabular_classification.baseline import Baseline
 from executors_ring.tabular_classification.feature_engineering import FeatureEngineering
 from executors_ring.tabular_classification.strategies import STRATEGY_REGISTRY, get_class_labels
@@ -62,7 +61,7 @@ def run_baseline_job(
     if not os.path.isfile(csv_path):
         raise FileNotFoundError(f"CSV não encontrado: {csv_path}")
 
-    now = run_timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    now = run_timestamp or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     threshold = (
         float(settings.classification_decision_threshold)
         if decision_threshold is None
@@ -78,7 +77,7 @@ def run_baseline_job(
         decision_threshold=threshold,
         artifact_name_suffix=artifact_name_suffix,
     )
-    pipeline.run(start_time=datetime.now())
+    pipeline.run(start_time=datetime.now(timezone.utc))
     pipeline.save_artifacts()
 
     if defer_global_preprocess_contract:
@@ -140,7 +139,7 @@ def run_feature_engineering_job(
         known = ", ".join(sorted(STRATEGY_REGISTRY))
         raise ValueError(f"Domínio {objective!r} não registrado. Disponíveis: {known}")
 
-    now = run_timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    now = run_timestamp or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     threshold = (
         float(settings.classification_decision_threshold)
         if decision_threshold is None

@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey, JSON
+from sqlalchemy import JSON, Column, Float, ForeignKey, Integer
 from sqlalchemy.orm import relationship
+
 from core.generic import modelsGeneric
 
 

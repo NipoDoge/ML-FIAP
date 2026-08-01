@@ -26,9 +26,9 @@ from platform_ring.domains.common import (
     promote_domain,
     rollback_domain,
 )
-from platform_ring.training_trigger import trigger_training_dag
-from platform_ring.schemas.recommendation_features import RecommendationFeaturesInput
 from platform_ring.schemas import contracts as platform_schemas
+from platform_ring.schemas.recommendation_features import RecommendationFeaturesInput
+from platform_ring.training_trigger import trigger_training_dag
 
 DOMAIN = "recommendation"
 
@@ -140,8 +140,8 @@ async def recommendation_train_trigger(
     try:
         models_list = json.loads(train_models)
         if not isinstance(models_list, list):
-            raise ValueError("train_models deve ser JSON array.")
-    except (json.JSONDecodeError, ValueError) as exc:
+            raise TypeError("train_models deve ser JSON array.")
+    except (json.JSONDecodeError, TypeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     extra = flatten_dispatch_train_params(

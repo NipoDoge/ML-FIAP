@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import domains  # noqa: F401
 import pytest
 
+import domains  # noqa: F401
 from orchestration_ring.dispatch import (
     resolve_domain,
     training_route_for_domain,

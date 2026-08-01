@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.configs import settings  # noqa: E402
+from core.configs import settings
 
 # Rotas que merecem linha própria no relatório
 MONITORED_ROUTES = {
@@ -146,7 +146,7 @@ def main() -> None:
 
     out_dir = Path(settings.path_maintenance_reports)
     out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     out_csv = out_dir / f"latency_summary_{stamp}.csv"
     summary_df.to_csv(out_csv, index=False)
 

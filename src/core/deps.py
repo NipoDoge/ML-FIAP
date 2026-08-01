@@ -1,19 +1,19 @@
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from core.database import Session
-from core.auth import oauth2_scheme
-from models.users import Users as users_models
-from models.roles import Roles
-from fastapi import HTTPException, status
+
+from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
-from core.configs import settings
-from typing import Optional
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from core.auth import oauth2_scheme
+from core.configs import settings
+from core.database import Session
+from models.roles import Roles
+from models.users import Users as users_models
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 async def get_session():

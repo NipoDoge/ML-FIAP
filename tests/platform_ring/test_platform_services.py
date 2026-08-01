@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import domains  # noqa: F401
 import pytest
 
+import domains  # noqa: F401
 from platform_ring.training_trigger import build_dispatch_conf
 
 

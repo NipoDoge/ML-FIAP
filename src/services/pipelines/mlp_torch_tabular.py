@@ -31,8 +31,8 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
-import torch.nn as nn
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
+from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 """Contratos compartilhados de ML (inferência, manifest, domínios, treino)."""
 
-from ml_core_ring import engines  # noqa: F401 — registra ENGINE_REGISTRY
+from ml_core_ring import engines
 from ml_core_ring.artifact_manifest import ArtifactManifest
 from ml_core_ring.domain_plugin import DOMAIN_REGISTRY, DomainPlugin, get_domain, register_domain
 from ml_core_ring.inference_engine import (
@@ -27,6 +27,10 @@ from ml_core_ring.train_backend import (
 )
 
 __all__ = [
+    "DOMAIN_REGISTRY",
+    "ENGINE_REGISTRY",
+    "RUNNER_REGISTRY",
+    "TRAIN_BACKEND_REGISTRY",
     "ArtifactManifest",
     "DomainPlugin",
     "InferenceEngine",
@@ -35,10 +39,7 @@ __all__ = [
     "TrainBackend",
     "TrainBackendResult",
     "TrainRequestContext",
-    "DOMAIN_REGISTRY",
-    "ENGINE_REGISTRY",
-    "RUNNER_REGISTRY",
-    "TRAIN_BACKEND_REGISTRY",
+    "engines",
     "get_domain",
     "get_engine",
     "get_runner",
@@ -48,5 +49,4 @@ __all__ = [
     "register_runner",
     "register_train_backend",
     "run_training_for_domain",
-    "engines",
 ]

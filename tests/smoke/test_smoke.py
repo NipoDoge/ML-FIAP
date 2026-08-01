@@ -3,19 +3,21 @@ Smoke Tests - Quick integration tests covering main application flows.
 These tests verify that critical endpoints work end-to-end.
 """
 
+from typing import ClassVar
+
 import pytest
 from fastapi.testclient import TestClient
 
-from main import app
-from src.api.v1.endpoints import authorize
-from src.services.auth import auth_service
+from api.v1.endpoints import authorize
 from core.deps import get_current_user, get_session
+from main import app
 from platform_ring.schemas.contracts import (
+    ComparisonPredict,
     InferenceReport,
     ServedModelPredict,
     TrainingSelectionSummaryPredict,
-    ComparisonPredict,
 )
+from services.auth import auth_service
 
 
 class DummyUser:
@@ -42,7 +44,7 @@ class DummyPrediction:
     pipeline_run_id = 10
     prediction = 1
     probability = 0.8
-    input_data = {"gender": "Female"}
+    input_data: ClassVar[dict[str, str]] = {"gender": "Female"}
 
 
 def _fake_inference_report() -> InferenceReport:

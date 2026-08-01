@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 
 from orchestration_ring.airflow_env import (
     DEFAULT_PIPELINE_USER_ID,
@@ -120,7 +120,7 @@ def task_run_baseline(**context) -> None:
     from executors_ring.tabular_classification.baseline import Baseline
     from executors_ring.tabular_classification.strategies import get_class_labels
 
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     snapshot_path = os.path.join(ml_settings.path_data, ml_settings.path_logs, now)
     setup_pipeline_run_logging(
         snapshot_path,
@@ -139,7 +139,7 @@ def task_run_baseline(**context) -> None:
         decision_threshold=decision_threshold,
         artifact_name_suffix="_automatic",
     )
-    pipeline.run(start_time=datetime.now())
+    pipeline.run(start_time=datetime.now(timezone.utc))
     pipeline.save_artifacts()
 
     if pipeline.defer_global_preprocess_contract:
@@ -214,7 +214,7 @@ def task_run_fe(**context) -> None:
             airflow_dag_run_id=context["dag_run"].run_id,
         )
     )
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     fe_snapshot = os.path.join(ml_settings.path_data, ml_settings.path_logs, f"{now}_fe{fe_run_id}")
     os.makedirs(fe_snapshot, exist_ok=True)
     setup_pipeline_run_logging(

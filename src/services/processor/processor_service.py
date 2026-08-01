@@ -1,11 +1,13 @@
+import asyncio
 import glob
+import json
 import logging
 import math
 import os
-import json
 import re
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -552,7 +554,6 @@ async def run_baseline(
     file: UploadFile, objective: str, user_id: int, db: AsyncSession
 ) -> PipelineRuns:
     """Salva o CSV enviado, executa o Baseline e persiste o resultado."""
-    from services.pipelines.baseline import Baseline
     from sklearn.metrics import (
         accuracy_score,
         average_precision_score,
@@ -561,11 +562,12 @@ async def run_baseline(
         recall_score,
     )
 
+    from services.pipelines.baseline import Baseline
+
     os.makedirs(settings.path_data, exist_ok=True)
     input_path = os.path.join(settings.path_data, file.filename)
     content = await file.read()
-    with open(input_path, "wb") as f:
-        f.write(content)
+    await asyncio.to_thread(Path(input_path).write_bytes, content)
 
     run = PipelineRuns(
         user_id=user_id,
@@ -582,7 +584,7 @@ async def run_baseline(
         await session.refresh(run)
 
         try:
-            run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            run_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             snapshot_path = os.path.join(settings.path_data, settings.path_logs, run_ts)
             setup_pipeline_run_logging(
                 snapshot_path,
@@ -591,10 +593,10 @@ async def run_baseline(
                 objective=objective,
                 pipeline_type="baseline",
             )
-            from services.pipelines.feature_strategies import get_class_labels
             from services.pipelines.binary_decision_threshold import (
                 labels_from_probability_threshold,
             )
+            from services.pipelines.feature_strategies import get_class_labels
 
             pipeline = Baseline(
                 pobjective=objective,
@@ -603,7 +605,7 @@ async def run_baseline(
                 class_labels=get_class_labels(objective),
                 defer_global_preprocess_contract=True,
             )
-            pipeline.run(start_time=datetime.now())
+            pipeline.run(start_time=datetime.now(timezone.utc))
             pipeline.save_artifacts()
 
             model_path = pipeline.baseline_model_joblib_path()
@@ -637,7 +639,7 @@ async def run_baseline(
             metrics["baseline_fe_contract_published"] = bool(run.active)
             run.metrics = metrics
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Baseline falhou: {e}")
             run.status = "failed"
             run.error_message = str(e)[:1000]
@@ -669,9 +671,9 @@ async def run_feature_engineering(
     """
     import tempfile
 
+    from services.pipelines.fe_model_selection import normalize_optimization_metric
     from services.pipelines.feature_engineering import FeatureEngineering
     from services.pipelines.feature_strategies import STRATEGY_REGISTRY
-    from services.pipelines.fe_model_selection import normalize_optimization_metric
     from services.processor.artifact_bundle import safe_rmtree, safe_unlink
     from services.processor.deployment_service import get_active_deployment
 
@@ -683,8 +685,10 @@ async def run_feature_engineering(
 
     os.makedirs(settings.path_data_preprocessed, exist_ok=True)
     resolved_manifest_path = await _resolve_fe_manifest_isolated_session(objective)
-    with open(resolved_manifest_path, "r", encoding="utf-8") as f:
-        baseline_manifest = json.load(f)
+    manifest_raw = await asyncio.to_thread(
+        Path(resolved_manifest_path).read_text, encoding="utf-8"
+    )
+    baseline_manifest = json.loads(manifest_raw)
 
     manifest_objective = str(baseline_manifest.get("objective", "")).strip().lower()
     if manifest_objective != objective:
@@ -728,7 +732,7 @@ async def run_feature_engineering(
         await session.refresh(run)
 
     effective_tuning_minutes = min(time_limit_minutes, settings.sync_fe_tune_max_minutes)
-    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     snapshot_path = os.path.join(settings.path_data, settings.path_logs, f"{run_ts}_fe{run.id}")
 
     try:
@@ -849,7 +853,7 @@ async def run_feature_engineering(
         run.inference_backend = backend
 
     except Exception as e:
-        logger.error(f"Feature Engineering falhou: {e}", exc_info=True)
+        logger.exception("Feature Engineering falhou")
         run.status = "failed"
         run.error_message = str(e)[:1000]
         run.completed_at = utcnow()
@@ -881,7 +885,6 @@ async def predict_for_domain(
     """
     import domains  # noqa: F401
     import executors_ring  # noqa: F401 — engines tabular + recommendation
-
     from ml_core_ring.domain_plugin import get_domain
     from services.processor.deployment_service import NoActiveDeploymentError, get_active_deployment
 

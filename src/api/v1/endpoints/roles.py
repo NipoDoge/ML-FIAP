@@ -1,14 +1,12 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Response
-from schemas import roles_schemas as roles_schemas
-from models.roles import Roles as roles_models
-from models.users import Users as users_models
-from core.deps import get_session, get_current_user
-from services.roles import roles_services as roles_service
 
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import List
-
+from core.deps import get_current_user, get_session
+from models.roles import Roles as roles_models
+from models.users import Users as users_models
+from schemas import roles_schemas
+from services.roles import roles_services as roles_service
 
 router = APIRouter()
 
@@ -31,13 +29,13 @@ async def post_role(
 
 
 # GET roles
-@router.get("/", status_code=status.HTTP_200_OK, response_model=List[roles_schemas.role])
+@router.get("/", status_code=status.HTTP_200_OK, response_model=list[roles_schemas.role])
 async def get_roles(
     db: AsyncSession = Depends(get_session), user_logged: users_models = Depends(get_current_user)
 ):
     try:
         if user_logged.role_id == roles_models.ADMINISTRATOR:
-            roles: List[roles_schemas.role] = await roles_service.select_all_roles(db)
+            roles: list[roles_schemas.role] = await roles_service.select_all_roles(db)
             return roles
         else:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)

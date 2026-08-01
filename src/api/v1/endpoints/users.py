@@ -1,24 +1,24 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Response
-from models.users import Users as users_models
-
-from schemas import users_schemas as users_schemas
-from core.deps import get_session, get_current_user
-from typing import List
-from sqlalchemy.ext.asyncio import AsyncSession
 import datetime
-from services.user import users_services as users_service
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.deps import get_current_user, get_session
 from core.security import get_password_hash
+from models.users import Users as users_models
+from schemas import users_schemas
+from services.user import users_services as users_service
 
 router = APIRouter()
 
 
 # GET users
-@router.get("/", response_model=List[users_schemas.usersGetData], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=list[users_schemas.usersGetData], status_code=status.HTTP_200_OK)
 async def get_users(
     db: AsyncSession = Depends(get_session), user_logged: users_models = Depends(get_current_user)
 ):
     try:
-        users: List[users_schemas.usersGetData] = await users_service.select_all_users(db)
+        users: list[users_schemas.usersGetData] = await users_service.select_all_users(db)
         return users
     except HTTPException as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
@@ -106,7 +106,10 @@ async def forgot_password(email: str, db: AsyncSession = Depends(get_session)):
 async def reset_password(token: str, password: str, db: AsyncSession = Depends(get_session)):
     try:
         user: users_schemas.users_update = await users_service.get_user_by_reset_token(token, db)
-        if not user or user.reset_password_expires < datetime.datetime.now():
+        expires_at = user.reset_password_expires if user else None
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=datetime.timezone.utc)
+        if not expires_at or expires_at < datetime.datetime.now(datetime.timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido ou expirado"
             )

@@ -1,8 +1,9 @@
-from models.users import Users as users_models
-from schemas import users_schemas as users_schemas
 from sqlalchemy.ext.asyncio import AsyncSession
-from core.security import get_password_hash
+
 from core.auth import authenticate_user
+from core.security import get_password_hash
+from models.users import Users as users_models
+from schemas import users_schemas
 
 
 async def authorize(email: str, password: str, db: AsyncSession):

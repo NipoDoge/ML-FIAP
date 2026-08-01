@@ -63,7 +63,7 @@ def setup_log(snapshot_path: str, now: str) -> logging.Logger:
     file_handler.setFormatter(log_format)
     root.addHandler(file_handler)
 
-    logging.info("Log persistente configurado em: %s", log_filename)
+    root.info("Log persistente configurado em: %s", log_filename)
     return root
 
 

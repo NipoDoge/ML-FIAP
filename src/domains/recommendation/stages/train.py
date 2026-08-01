@@ -19,7 +19,7 @@ def main() -> None:
         "test_truth": features_dir / "test_truth.json",
         "interactions": Path("data/recommendation/processed/interactions.parquet"),
     }
-    for key, path in bundle.items():
+    for path in bundle.values():
         if not Path(path).is_file():
             raise FileNotFoundError(f"Dependência em falta para train: {path}")
     runner.train(bundle, ctx)

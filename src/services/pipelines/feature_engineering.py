@@ -1,64 +1,60 @@
 from __future__ import annotations
 
 import csv
+import json
 import logging
 import os
 import sys
 import time
-import json
 from contextlib import nullcontext
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
-import pandas as pd
+import joblib
 import matplotlib.pyplot as plt
-import seaborn as sns
 import mlflow
 import mlflow.sklearn
-import joblib
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from joblib import parallel_backend
-
-from datetime import datetime
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import (
-    train_test_split,
-    cross_val_score,
-    cross_validate,
-    StratifiedKFold,
-    ParameterSampler,
-)
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.pipeline import Pipeline as SkPipeline
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.feature_selection import SelectKBest, VarianceThreshold, f_classif
 from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
+from sklearn.inspection import permutation_importance
 from sklearn.metrics import (
     accuracy_score,
+    classification_report,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
     roc_auc_score,
-    classification_report,
 )
-from sklearn.inspection import permutation_importance
+from sklearn.model_selection import (
+    ParameterSampler,
+    StratifiedKFold,
+    cross_val_score,
+    cross_validate,
+    train_test_split,
+)
+from sklearn.pipeline import Pipeline as SkPipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 
 from core.configs import settings
 from core.custom_logger import setup_log
-from typing import TYPE_CHECKING, Any
-
-from services.pipelines.feature_strategies.base import FeatureStrategy
+from ml_core_ring.mlflow_setup import configure_mlflow_tracking, ensure_mlflow_experiment
+from services.pipelines.binary_decision_threshold import labels_from_probability_threshold
 from services.pipelines.fe_hyperparameter_tuning import param_distributions_for
 from services.pipelines.fe_model_selection import (
     normalize_optimization_metric,
     result_column_for_metric,
     sklearn_scoring_parameter,
 )
+from services.pipelines.feature_strategies.base import FeatureStrategy
 from services.utils import filename_with_suffix, log_training_csv_to_active_run
-from ml_core_ring.mlflow_setup import configure_mlflow_tracking, ensure_mlflow_experiment
-
-from services.pipelines.binary_decision_threshold import labels_from_probability_threshold
 
 if TYPE_CHECKING:
     from services.pipelines.mlp_torch_tabular import TorchTabularMLPResult
@@ -124,7 +120,7 @@ class FeatureEngineering:
         if run_timestamp is not None:
             self.now = run_timestamp
         else:
-            self.now = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         self.snapshot_path = os.path.join(settings.path_data, settings.path_logs, self.now)
 
         self.data: pd.DataFrame | None = None
@@ -147,7 +143,9 @@ class FeatureEngineering:
         self.best_test_score: float = -np.inf
         self.tuned_metrics: dict = {}
         self.figs_to_log: list[tuple[str, plt.Figure]] = []
-        self.n_jobs = 1 if "debugpy" in sys.modules else -1
+        self.n_jobs = (
+            1 if "debugpy" in sys.modules or not self._process_parallelism_available() else -1
+        )
         self.tuning_n_iter = tuning_n_iter if tuning_n_iter is not None else 100
 
         self.enable_mlp_torch = enable_mlp_torch
@@ -200,13 +198,20 @@ class FeatureEngineering:
         dname = f"fe_export_{self.objective}_{self.now}{self._artifact_suffix or ''}"
         return os.path.join(os.path.dirname(os.path.abspath(joblib_path)), dname)
 
+    @staticmethod
+    def _process_parallelism_available() -> bool:
+        try:
+            os.sysconf("SC_SEM_NSEMS_MAX")
+        except (AttributeError, OSError, ValueError):
+            return False
+        return True
+
     def _passes_guardrails(self, precision_value: float, roc_auc_value: float) -> bool:
         if self.min_precision is not None and precision_value < self.min_precision:
             return False
-        if self.min_roc_auc is not None:
-            if np.isnan(roc_auc_value) or roc_auc_value < self.min_roc_auc:
-                return False
-        return True
+        if self.min_roc_auc is None:
+            return True
+        return not (np.isnan(roc_auc_value) or roc_auc_value < self.min_roc_auc)
 
     def _joblib_cv_parallel_cm(self):
         """
@@ -238,7 +243,7 @@ class FeatureEngineering:
         if non_null.empty:
             return False
         unique_values = set(non_null.unique().tolist())
-        return unique_values.issubset({0, 1, 0.0, 1.0, np.int8(0), np.int8(1), True, False})
+        return unique_values.issubset({0, 1, np.int8(0), np.int8(1)})
 
     def _classify_feature_columns(self, x_df: pd.DataFrame) -> dict[str, list[str]]:
         categorical_cols = x_df.select_dtypes(include=["object", "category"]).columns.tolist()
@@ -796,6 +801,7 @@ class FeatureEngineering:
 
         try:
             import torch
+
             from services.pipelines.mlp_torch_tabular import train_eval_mlp_binary_tabular
         except ImportError as e:
             logger.warning("MLP PyTorch indisponível (import): %s — passo ignorado.", e)
@@ -863,8 +869,8 @@ class FeatureEngineering:
                 max_epochs=self.mlp_max_epochs,
                 early_stopping_patience=self.mlp_early_stopping_patience,
             )
-        except Exception as e:
-            logger.error("MLP PyTorch falhou (sklearn segue normal): %s", e, exc_info=True)
+        except Exception:
+            logger.exception("MLP PyTorch falhou (sklearn segue normal)")
             self.mlp_torch_result = None
             self.mlp_torch_checkpoint_path = None
             return
@@ -1256,10 +1262,8 @@ class FeatureEngineering:
         fe_bundle_dir: str | None = None
         try:
             fe_bundle_dir = self._export_fe_bundle(joblib_path)
-        except Exception as e:
-            logger.error(
-                "Falha ao exportar bundle FE (CSV/comparação/PyTorch): %s", e, exc_info=True
-            )
+        except Exception:
+            logger.exception("Falha ao exportar bundle FE (CSV/comparação/PyTorch)")
 
         try:
             experiment_name = f"{self.objective}_feature_engineering"
@@ -1353,7 +1357,7 @@ class FeatureEngineering:
                 for fname, fobj in self.figs_to_log:
                     try:
                         mlflow.log_figure(fobj, fname)
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001
                         logger.warning(f"Falha ao logar figura {fname}: {e}")
 
                 mlflow.sklearn.log_model(self.best_pipeline, artifact_path="sklearn_model")
@@ -1362,7 +1366,7 @@ class FeatureEngineering:
                     mlflow.log_artifacts(fe_bundle_dir, artifact_path="fe_export")
 
             logger.info(f"Resultados registrados no MLflow (experimento: {experiment_name})")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Falha ao registrar no MLflow: {e}")
 
     # ------------------------------------------------------------------
@@ -1374,20 +1378,20 @@ class FeatureEngineering:
         Responsabilidade: carregar contrato do baseline e construir features.
         """
         self.load_data()
-        logger.debug(f"Dados carregados: {datetime.now() - start_time}")
+        logger.debug(f"Dados carregados: {datetime.now(timezone.utc) - start_time}")
 
         self.build_features()
-        logger.debug(f"Features criadas: {datetime.now() - start_time}")
+        logger.debug(f"Features criadas: {datetime.now(timezone.utc) - start_time}")
 
     def _run_modeling_prep_and_selection(self, start_time):
         """
         Responsabilidade: preparar split e selecionar modelo base.
         """
         self.select_features()
-        logger.debug(f"Features selecionadas: {datetime.now() - start_time}")
+        logger.debug(f"Features selecionadas: {datetime.now(timezone.utc) - start_time}")
 
         self.train_models()
-        logger.debug(f"Modelos treinados: {datetime.now() - start_time}")
+        logger.debug(f"Modelos treinados: {datetime.now(timezone.utc) - start_time}")
 
     def _run_tuning_evaluation_and_persistence(
         self, start_time, time_limit_minutes: int, acc_target: float | None
@@ -1410,23 +1414,23 @@ class FeatureEngineering:
             )
         else:
             self.tune(time_limit_minutes=time_limit_minutes, acc_target=acc_target)
-            logger.debug(f"Tuning concluído: {datetime.now() - start_time}")
+            logger.debug(f"Tuning concluído: {datetime.now(timezone.utc) - start_time}")
 
         # MLP PyTorch: comparável no MLflow aos sklearn; não altera best_pipeline nem artefato promovido.
         self._run_mlp_torch_mvp()
-        logger.debug(f"MLP PyTorch (MVP): {datetime.now() - start_time}")
+        logger.debug(f"MLP PyTorch (MVP): {datetime.now(timezone.utc) - start_time}")
 
         self.evaluate_importance()
-        logger.debug(f"Importância avaliada: {datetime.now() - start_time}")
+        logger.debug(f"Importância avaliada: {datetime.now(timezone.utc) - start_time}")
 
         self.save()
-        logger.debug(f"Artefatos salvos: {datetime.now() - start_time}")
+        logger.debug(f"Artefatos salvos: {datetime.now(timezone.utc) - start_time}")
 
     def run(self, time_limit_minutes: int, acc_target: float | None):
         """
         Orquestrador principal: executa FE por responsabilidades.
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         logger.info(f"Pipeline de Feature Engineering iniciado: {start_time}")
         logger.info(
             "FE config | USE_MLP_FOR_PREDICTION=%s | enable_mlp_torch=%s",
@@ -1442,7 +1446,7 @@ class FeatureEngineering:
         self._run_modeling_prep_and_selection(start_time)
         self._run_tuning_evaluation_and_persistence(start_time, time_limit_minutes, acc_target)
 
-        elapsed = datetime.now() - start_time
+        elapsed = datetime.now(timezone.utc) - start_time
         logger.info(f"Pipeline de Feature Engineering concluído em: {elapsed}")
 
 
@@ -1459,9 +1463,9 @@ if __name__ == "__main__":
     strategy = STRATEGY_REGISTRY[objective]()
 
     snapshot_path = os.path.join(
-        settings.path_data, settings.path_logs, datetime.now().strftime("%Y%m%d_%H%M%S")
+        settings.path_data, settings.path_logs, datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     )
-    setup_log(snapshot_path, datetime.now().strftime("%Y%m%d_%H%M%S"))
+    setup_log(snapshot_path, datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"))
 
     pipeline = FeatureEngineering(objective=objective, strategy=strategy)
 

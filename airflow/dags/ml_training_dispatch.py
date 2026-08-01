@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Bootstrap antes de importar orchestration_ring (Airflow parseia o módulo top-level).
 _ML_CODE = os.environ.get("ML_CODE_ROOT", "/opt/airflow/ml_code")
@@ -35,10 +35,10 @@ for _p in (_ML_LIBS, _ML_CODE, _ML_ROOT):
     if _p and os.path.isdir(_p) and _p not in sys.path:
         sys.path.insert(0, os.path.abspath(_p))
 
-from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator, PythonOperator
 
+from airflow import DAG
 from orchestration_ring.airflow_env import bootstrap_ml_sys_path, prepend_airflow_ml_site_packages
 
 bootstrap_ml_sys_path()
@@ -63,7 +63,7 @@ with DAG(
     dag_id="ml_training_dispatch",
     description="Dispatch central de treino por domain (tabular | recommendation).",
     default_args=DEFAULT_ARGS,
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
     schedule_interval=None,
     catchup=False,
     tags=["ml", "training", "dispatch"],

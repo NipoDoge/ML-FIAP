@@ -7,11 +7,10 @@ import os
 
 import domains  # noqa: F401
 import executors_ring  # noqa: F401
-
+from ml_core_ring.dispatch_params import flatten_dispatch_train_params
 from orchestration_ring.airflow_env import DEFAULT_PIPELINE_USER_ID
 from orchestration_ring.conf import merge_run_conf
 from orchestration_ring.persist_run import persist_recommendation_run, run_async
-from ml_core_ring.dispatch_params import flatten_dispatch_train_params
 from orchestration_ring.recommendation_client import run_recommendation_via_worker
 
 logger = logging.getLogger(__name__)

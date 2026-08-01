@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from src.services.pipelines.baseline import Baseline, gr
-import src.services.pipelines.baseline as baseline_module
+import services.pipelines.baseline as baseline_module
+from services.pipelines.baseline import Baseline, gr
 
 
 def test_init_default_labels():
@@ -78,8 +78,7 @@ def test_load_data_picks_latest(tmp_path):
     time.sleep(0.05)
     file2.write_text("a,b,target\n3,4,1")
 
-    baseline = Baseline(pobjective="target")
-    baseline.path_data = str(tmp_path)
+    baseline = Baseline(pobjective="target", csv_path=str(file2))
 
     baseline.load_data()
 
@@ -170,12 +169,12 @@ def test_clean_and_encode_imputes_and_encodes():
     )
     baseline.target = "target"
 
-    baseline.clean_and_encode()
+    baseline.prepare_modeling_frame()
 
-    assert baseline.data_encoded.isnull().sum().sum() == 0
     assert "dataset" not in baseline.data_encoded.columns
     assert "target" in baseline.data_encoded.columns
     assert baseline.data_encoded.shape[0] == 4
+    assert baseline.data_encoded["value"].isna().sum() == 1
 
 
 def test_split_data_creates_train_test_sets():
@@ -208,6 +207,8 @@ def test_prepare_and_train_trains_model(monkeypatch, tmp_path):
     metrics_record = {}
 
     class DummyRun:
+        info = SimpleNamespace(run_id="test-run")
+
         def __enter__(self):
             return self
 
@@ -217,19 +218,22 @@ def test_prepare_and_train_trains_model(monkeypatch, tmp_path):
     monkeypatch.setattr(
         baseline_module,
         "mlflow",
-        SimpleNamespace(
-            get_experiment_by_name=lambda name: None,
-            create_experiment=lambda *args, **kwargs: "exp",
-            set_experiment=lambda *args, **kwargs: None,
-            start_run=lambda *args, **kwargs: DummyRun(),
-            log_params=lambda params: metrics_record.setdefault("params", params),
-            log_metrics=lambda metrics: metrics_record.setdefault("metrics", metrics),
-            log_metric=lambda name, value: metrics_record.setdefault(name, value),
-            sklearn=SimpleNamespace(
-                log_model=lambda *args, **kwargs: metrics_record.setdefault("model_logged", True)
-            ),
+            SimpleNamespace(
+                get_experiment_by_name=lambda name: None,
+                create_experiment=lambda *args, **kwargs: "exp",
+                set_experiment=lambda *args, **kwargs: None,
+                start_run=lambda *args, **kwargs: DummyRun(),
+                log_param=lambda name, value: metrics_record.setdefault(name, value),
+                log_params=lambda params: metrics_record.setdefault("params", params),
+                log_metrics=lambda metrics: metrics_record.setdefault("metrics", metrics),
+                log_metric=lambda name, value: metrics_record.setdefault(name, value),
+                log_artifacts=lambda *args, **kwargs: None,
+                sklearn=SimpleNamespace(
+                    log_model=lambda *args, **kwargs: metrics_record.setdefault("model_logged", True)
+                ),
         ),
     )
+    monkeypatch.setattr(baseline_module, "ensure_mlflow_experiment", lambda *args, **kwargs: None)
 
     baseline.prepare_and_train()
 
@@ -252,6 +256,11 @@ def test_save_writes_preprocessed_csv_and_model(monkeypatch, tmp_path):
     baseline.now = "now"
     baseline.path_data_preprocessed = str(tmp_path / "preprocessed")
     baseline.path_model = str(tmp_path / "models")
+    baseline.snapshot_path = str(tmp_path / "snapshot")
+    baseline.x_train = baseline.data_encoded[["feature"]]
+    baseline.x_test = baseline.data_encoded[["feature"]]
+    baseline.y_train = baseline.data_encoded["target"]
+    baseline.y_test = baseline.data_encoded["target"]
 
     monkeypatch.setattr(
         baseline_module, "mlflow", SimpleNamespace(log_artifact=lambda *args, **kwargs: None)
@@ -283,7 +292,7 @@ def test_save_artifacts_moves_csv_and_graph_files(tmp_path):
 
     baseline.save_artifacts()
 
-    assert not os.path.exists(baseline.current_csv_path)
+    assert os.path.exists(baseline.current_csv_path)
     assert os.path.exists(os.path.join(baseline.snapshot_path, "input.csv"))
     assert os.path.exists(os.path.join(baseline.snapshot_path, "graphs", "graph.png"))
     assert not os.path.exists(graph_file)

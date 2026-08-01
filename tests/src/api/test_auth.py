@@ -1,9 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from api.v1.endpoints import authorize
 from main import app
-from src.api.v1.endpoints import authorize
-from src.services.auth import auth_service
+from services.auth import auth_service
 
 
 class MockRegisteredUser:

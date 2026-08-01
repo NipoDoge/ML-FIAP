@@ -211,7 +211,7 @@ services:
       --default-artifact-root mlflow-artifacts:/
       --serve-artifacts
       --artifacts-destination /mlflow/artifacts
-      --allowed-hosts localhost,127.0.0.1,mlflow_server,mlflow_server:5000
+      --allowed-hosts localhost,localhost:5000,127.0.0.1,127.0.0.1:5000,mlflow_server,mlflow_server:5000
     ports:
       - "5000:5000"
     volumes:

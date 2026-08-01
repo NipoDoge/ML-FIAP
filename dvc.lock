@@ -14,8 +14,8 @@ stages:
       size: 432
     - path: src/domains/recommendation/
       hash: md5
-      md5: 42d6a80f37880e499ef831150ff54a39.dir
-      size: 86642
+      md5: b1d93d6fb23904903aeb23b9a7872e59.dir
+      size: 86534
       nfiles: 28
     outs:
     - path: data/recommendation/processed/interactions.parquet
@@ -36,8 +36,8 @@ stages:
       size: 432
     - path: src/domains/recommendation/
       hash: md5
-      md5: 42d6a80f37880e499ef831150ff54a39.dir
-      size: 86642
+      md5: b1d93d6fb23904903aeb23b9a7872e59.dir
+      size: 86534
       nfiles: 28
     outs:
     - path: data/recommendation/features/test_truth.json
@@ -66,8 +66,8 @@ stages:
       size: 432
     - path: src/domains/recommendation/
       hash: md5
-      md5: 42d6a80f37880e499ef831150ff54a39.dir
-      size: 86642
+      md5: b1d93d6fb23904903aeb23b9a7872e59.dir
+      size: 86534
       nfiles: 28
     outs:
     - path: models/recommendation/torch_embedding.meta.json
@@ -100,8 +100,8 @@ stages:
       size: 432
     - path: src/domains/recommendation/
       hash: md5
-      md5: 42d6a80f37880e499ef831150ff54a39.dir
-      size: 86642
+      md5: b1d93d6fb23904903aeb23b9a7872e59.dir
+      size: 86534
       nfiles: 28
     outs:
     - path: models/recommendation/champion_manifest.json

@@ -1,7 +1,7 @@
 """Entrypoint do worker de recomendação (uvicorn)."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 _SRC = Path(__file__).resolve().parent / "src"
 if str(_SRC) not in sys.path:

@@ -4,13 +4,7 @@
 from __future__ import annotations
 
 import importlib
-import sys
 from pathlib import Path
-
-
-def _check_python() -> None:
-    if sys.version_info < (3, 10):
-        raise SystemExit(f"Python >= 3.10 necessário; atual: {sys.version}")
 
 
 def _check_import(name: str, pip_hint: str | None = None) -> None:
@@ -30,7 +24,6 @@ def _check_paths() -> None:
 
 
 def main() -> None:
-    _check_python()
     _check_import("torch")
     _check_import("sklearn")
     _check_import("mlflow")

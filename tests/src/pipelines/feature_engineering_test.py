@@ -1,12 +1,81 @@
+import json
+import os
+from contextlib import nullcontext
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
+
 import numpy as np
 import pandas as pd
 import pytest
-import os
-from contextlib import nullcontext
 
-from src.services.pipelines.feature_engineering import FeatureEngineering
-from src.services.pipelines.feature_strategies.base import FeatureStrategy
+import services.pipelines.feature_engineering as feature_engineering_module
+from services.pipelines.feature_engineering import FeatureEngineering
+from services.pipelines.feature_strategies.base import FeatureStrategy
+
+
+def write_baseline_manifest(
+    tmp_path,
+    data: pd.DataFrame,
+    *,
+    objective: str = "heart_disease",
+    sample_schema: str = "raw_clean",
+    csv_name: str = "baseline_sample.csv",
+) -> tuple[str, str]:
+    csv_path = tmp_path / csv_name
+    data.to_csv(csv_path, index=False)
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "objective": objective,
+                "sample_schema": sample_schema,
+                "output_sample_csv_stable": str(csv_path),
+            }
+        ),
+        encoding="utf-8",
+    )
+    return str(csv_path), str(manifest_path)
+
+
+class DummyMlflowRun:
+    info = SimpleNamespace(run_id="test-run")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
+
+
+def patch_fe_mlflow(monkeypatch) -> Mock:
+    mock_start_run = Mock(return_value=DummyMlflowRun())
+    monkeypatch.setattr(
+        feature_engineering_module, "ensure_mlflow_experiment", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        feature_engineering_module, "log_training_csv_to_active_run", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(feature_engineering_module.mlflow, "start_run", mock_start_run)
+    monkeypatch.setattr(feature_engineering_module.mlflow, "log_param", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        feature_engineering_module.mlflow, "log_metric", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(feature_engineering_module.mlflow, "log_dict", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        feature_engineering_module.mlflow, "log_figure", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        feature_engineering_module.mlflow, "log_artifact", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        feature_engineering_module.mlflow, "log_artifacts", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        feature_engineering_module.mlflow.sklearn,
+        "log_model",
+        lambda *args, **kwargs: None,
+    )
+    return mock_start_run
 
 
 class TestFeatureEngineeringInit:
@@ -83,102 +152,90 @@ class TestLoadData:
         self.strategy = Mock(spec=FeatureStrategy)
         self.fe = FeatureEngineering(objective="heart_disease", strategy=self.strategy)
 
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_with_explicit_csv_path(self, mock_read_csv, mock_glob):
+    def test_load_data_with_explicit_csv_path(self, tmp_path):
         """Test loading data with explicit CSV path"""
-        csv_path = "/path/to/data.csv"
-        self.fe._explicit_csv_path = csv_path
-
-        # Mock CSV data
-        mock_data = pd.DataFrame(
+        data = pd.DataFrame(
             {"feature1": [1, 2, 3], "feature2": [4, 5, 6], "target": [0, 1, 0]}
         )
-        mock_read_csv.return_value = mock_data
-
-        with patch("os.path.isfile", return_value=True):
-            self.fe.load_data()
-
-        mock_read_csv.assert_called_once_with(csv_path)
-        pd.testing.assert_frame_equal(self.fe.data, mock_data)
-
-    @patch("os.path.isfile")
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_with_csv_not_found(self, mock_read_csv, mock_glob, mock_isfile):
-        """Test that ValueError is raised when CSV is not found"""
-        csv_path = "/nonexistent/path.csv"
+        csv_path, manifest_path = write_baseline_manifest(tmp_path, data)
         self.fe._explicit_csv_path = csv_path
-        mock_isfile.return_value = False
+        self.fe._explicit_manifest_path = manifest_path
 
-        with pytest.raises(ValueError, match="CSV não encontrado"):
+        self.fe.load_data()
+
+        pd.testing.assert_frame_equal(self.fe.data, data)
+
+    def test_load_data_with_csv_not_found(self, tmp_path):
+        """Test that ValueError is raised when CSV is not found"""
+        csv_path = str(tmp_path / "missing.csv")
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "objective": "heart_disease",
+                    "sample_schema": "raw_clean",
+                    "output_sample_csv_stable": csv_path,
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.fe._explicit_csv_path = csv_path
+        self.fe._explicit_manifest_path = str(manifest_path)
+
+        with pytest.raises(ValueError, match="CSV do baseline não encontrado"):
             self.fe.load_data()
 
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_no_csv_found(self, mock_read_csv, mock_glob):
-        """Test ValueError when no CSV files found in default path"""
+    def test_load_data_no_csv_found(self, tmp_path):
+        """Test ValueError when no manifest is found in default path"""
         self.fe._explicit_csv_path = None
-        mock_glob.return_value = []
+        self.fe.path_data_preprocessed = str(tmp_path)
 
-        with pytest.raises(ValueError, match="Nenhum CSV encontrado"):
+        with pytest.raises(ValueError, match="Manifest não encontrado"):
             self.fe.load_data()
 
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_missing_target_column(self, mock_read_csv, mock_glob):
+    def test_load_data_missing_target_column(self, tmp_path):
         """Test that ValueError is raised when target column is missing"""
-        mock_data = pd.DataFrame({"feature1": [1, 2, 3], "feature2": [4, 5, 6]})
-        mock_read_csv.return_value = mock_data
-        mock_glob.return_value = ["/path/to/data.csv"]
+        data = pd.DataFrame({"feature1": [1, 2, 3], "feature2": [4, 5, 6]})
+        _csv_path, manifest_path = write_baseline_manifest(tmp_path, data)
+        self.fe._explicit_manifest_path = manifest_path
 
-        with patch("os.path.getctime", return_value=0):
-            with pytest.raises(ValueError, match="coluna 'target' não encontrada"):
-                self.fe.load_data()
+        with pytest.raises(ValueError, match="coluna 'target' não encontrada"):
+            self.fe.load_data()
 
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_with_null_values(self, mock_read_csv, mock_glob):
+    def test_load_data_with_null_values(self, tmp_path):
         """Test that ValueError is raised when null values are present"""
-        mock_data = pd.DataFrame(
+        data = pd.DataFrame(
             {"feature1": [1, 2, np.nan], "feature2": [4, 5, 6], "target": [0, 1, 0]}
         )
-        mock_read_csv.return_value = mock_data
-        mock_glob.return_value = ["/path/to/data.csv"]
+        _csv_path, manifest_path = write_baseline_manifest(tmp_path, data)
+        self.fe._explicit_manifest_path = manifest_path
 
-        with patch("os.path.getctime", return_value=0):
-            with pytest.raises(ValueError, match="valores nulos"):
-                self.fe.load_data()
+        with pytest.raises(ValueError, match="valores nulos"):
+            self.fe.load_data()
 
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_removes_column_prefixes(self, mock_read_csv, mock_glob):
+    def test_load_data_removes_column_prefixes(self, tmp_path):
         """Test that column prefixes are removed from legacy CSVs"""
-        mock_data = pd.DataFrame(
+        data = pd.DataFrame(
             {"prefix__feature1": [1, 2, 3], "prefix__feature2": [4, 5, 6], "target": [0, 1, 0]}
         )
-        mock_read_csv.return_value = mock_data
-        mock_glob.return_value = ["/path/to/data.csv"]
+        _csv_path, manifest_path = write_baseline_manifest(tmp_path, data)
+        self.fe._explicit_manifest_path = manifest_path
 
-        with patch("os.path.getctime", return_value=0):
-            self.fe.load_data()
+        self.fe.load_data()
 
         assert "feature1" in self.fe.data.columns
         assert "feature2" in self.fe.data.columns
         assert "target" in self.fe.data.columns
 
-    @patch("glob.glob")
-    @patch("pandas.read_csv")
-    def test_load_data_lowercase_columns(self, mock_read_csv, mock_glob):
+    def test_load_data_lowercase_columns(self, tmp_path):
         """Test that columns are converted to lowercase"""
-        mock_data = pd.DataFrame(
+        data = pd.DataFrame(
             {"Feature1": [1, 2, 3], "FEATURE2": [4, 5, 6], "TARGET": [0, 1, 0]}
         )
-        mock_read_csv.return_value = mock_data
-        mock_glob.return_value = ["/path/to/data.csv"]
+        _csv_path, manifest_path = write_baseline_manifest(tmp_path, data)
+        self.fe._explicit_manifest_path = manifest_path
 
-        with patch("os.path.getctime", return_value=0):
-            self.fe.load_data()
+        self.fe.load_data()
 
         assert all(col.islower() for col in self.fe.data.columns)
 
@@ -319,7 +376,13 @@ class TestTrainModels:
 
         svm_pipeline = self.fe.trained_models.get("SVM")
         if svm_pipeline and hasattr(svm_pipeline, "named_steps"):
-            assert "scaler" in svm_pipeline.named_steps
+            preprocess = svm_pipeline.named_steps["preprocess"]
+            continuous_transformer = next(
+                transformer
+                for name, transformer, _columns in preprocess.transformers_
+                if name == "continuous"
+            )
+            assert "scaler" in continuous_transformer.named_steps
 
 
 class TestTune:
@@ -439,41 +502,27 @@ class TestSave:
         self.fe.feature_names = [f"feature{i}" for i in range(n_features)]
         self.fe.train_models()
 
-    @patch("joblib.dump")
-    @patch("mlflow.start_run")
-    @patch("mlflow.get_experiment_by_name")
-    @patch("mlflow.set_experiment")
-    @patch("mlflow.create_experiment")
-    @patch("os.makedirs")
-    def test_save_creates_joblib_file(
-        self, mock_makedirs, mock_create_exp, mock_set_exp, mock_get_exp, mock_start_run, mock_dump
-    ):
+    def test_save_creates_joblib_file(self, tmp_path, monkeypatch):
         """Test that joblib file is created"""
-        mock_get_exp.return_value = None
-        mock_start_run.return_value.__enter__ = Mock()
-        mock_start_run.return_value.__exit__ = Mock(return_value=None)
+        mock_dump = Mock()
+        self.fe.path_model = str(tmp_path)
+        monkeypatch.setattr(feature_engineering_module.joblib, "dump", mock_dump)
+        monkeypatch.setattr(self.fe, "_export_fe_bundle", lambda _joblib_path: None)
+        patch_fe_mlflow(monkeypatch)
 
         self.fe.save()
 
         mock_dump.assert_called()
 
-    @patch("joblib.dump")
-    @patch("mlflow.start_run")
-    @patch("mlflow.get_experiment_by_name")
-    @patch("mlflow.set_experiment")
-    @patch("mlflow.create_experiment")
-    @patch("os.makedirs")
-    def test_save_logs_to_mlflow(
-        self, mock_makedirs, mock_create_exp, mock_set_exp, mock_get_exp, mock_start_run, mock_dump
-    ):
+    def test_save_logs_to_mlflow(self, tmp_path, monkeypatch):
         """Test that results are logged to MLflow"""
-        mock_get_exp.return_value = None
-        mock_start_run.return_value.__enter__ = Mock()
-        mock_start_run.return_value.__exit__ = Mock(return_value=None)
+        self.fe.path_model = str(tmp_path)
+        monkeypatch.setattr(feature_engineering_module.joblib, "dump", lambda *args, **kwargs: None)
+        monkeypatch.setattr(self.fe, "_export_fe_bundle", lambda _joblib_path: None)
+        mock_start_run = patch_fe_mlflow(monkeypatch)
 
         self.fe.save()
 
-        mock_set_exp.assert_called()
         mock_start_run.assert_called()
 
 
@@ -522,11 +571,20 @@ class TestRun:
     @patch("services.pipelines.feature_engineering.FeatureEngineering.build_features")
     @patch("services.pipelines.feature_engineering.FeatureEngineering.load_data")
     def test_run_calls_all_methods_in_order(
-        self, mock_load, mock_build, mock_select, mock_train, mock_tune, mock_importance, mock_save
+        self,
+        mock_load,
+        mock_build,
+        mock_select,
+        mock_train,
+        mock_tune,
+        mock_importance,
+        mock_save,
+        monkeypatch,
     ):
         """Test that run method calls all pipeline steps"""
         strategy = Mock(spec=FeatureStrategy)
         fe = FeatureEngineering(objective="heart_disease", strategy=strategy)
+        monkeypatch.setattr(feature_engineering_module.settings, "use_mlp_for_prediction", False)
 
         fe.run(time_limit_minutes=1, acc_target=0.85)
 
@@ -547,11 +605,20 @@ class TestRun:
     @patch("services.pipelines.feature_engineering.FeatureEngineering.build_features")
     @patch("services.pipelines.feature_engineering.FeatureEngineering.load_data")
     def test_run_passes_correct_parameters(
-        self, mock_load, mock_build, mock_select, mock_train, mock_tune, mock_importance, mock_save
+        self,
+        mock_load,
+        mock_build,
+        mock_select,
+        mock_train,
+        mock_tune,
+        mock_importance,
+        mock_save,
+        monkeypatch,
     ):
         """Test that run passes correct parameters to tune"""
         strategy = Mock(spec=FeatureStrategy)
         fe = FeatureEngineering(objective="heart_disease", strategy=strategy)
+        monkeypatch.setattr(feature_engineering_module.settings, "use_mlp_for_prediction", False)
 
         fe.run(time_limit_minutes=30, acc_target=0.92)
 

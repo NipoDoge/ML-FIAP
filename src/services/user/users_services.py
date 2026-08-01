@@ -1,18 +1,19 @@
-from models.users import Users as users_models
-from schemas import users_schemas as users_schemas
-from sqlalchemy.ext.asyncio import AsyncSession
 import datetime
-from fastapi import HTTPException, status
-from sqlalchemy.future import select
-from typing import List
 import secrets
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from models.roles import Roles as roles_models
+from models.users import Users as users_models
+from schemas import users_schemas
 
 
-async def select_all_users(db: AsyncSession) -> List[users_schemas.usersGetData]:
+async def select_all_users(db: AsyncSession) -> list[users_schemas.usersGetData]:
     async with db as session:
         querie = (
             select(users_models)
@@ -20,7 +21,7 @@ async def select_all_users(db: AsyncSession) -> List[users_schemas.usersGetData]
             .filter(users_models.active.is_(True))
         )
         resultset = await session.execute(querie)
-        users: List[users_schemas.usersGetData] = resultset.scalars().unique().all()
+        users: list[users_schemas.usersGetData] = resultset.scalars().unique().all()
 
         users_list = []
         for user in users:
@@ -130,7 +131,9 @@ async def generate_reset_token(email: str, db: AsyncSession):
         user: users_schemas.users = await get_user_by_email(email, db)
         token = secrets.token_urlsafe(16)
         user.reset_password_token = token
-        user.reset_password_expires = datetime.datetime.now() + datetime.timedelta(hours=1)
+        user.reset_password_expires = datetime.datetime.now(
+            datetime.timezone.utc
+        ) + datetime.timedelta(hours=1)
         session.add(user)
         await session.commit()
         return token
@@ -168,7 +171,7 @@ async def send_email(email: str, token: str):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Erro ao enviar e-mail."
         )
-    except Exception as e:
+    except OSError as e:
         print(f"Erro geral: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Erro ao enviar e-mail."

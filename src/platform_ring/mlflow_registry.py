@@ -193,7 +193,8 @@ def _resolve_model_version(
 def _version_for_run_id(client: Any, model_name: str, run_id: str) -> str | None:
     try:
         versions = client.search_model_versions(f"name='{model_name}'")
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _logger.debug("search_model_versions falhou para %s/run_id=%s: %s", model_name, run_id, exc)
         return None
     for mv in versions:
         if getattr(mv, "run_id", None) == run_id:
@@ -221,15 +222,15 @@ def _create_version_from_run(
     try:
         try:
             client.create_registered_model(model_name)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            _logger.debug("create_registered_model ignorado para %s: %s", model_name, exc)
         mv = client.create_model_version(
             name=model_name,
             source=source,
             run_id=mlflow_run_id,
         )
         return str(mv.version)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         _logger.debug("create_model_version falhou (%s): %s", source, exc)
         # Fallback: artefacto alternativo no run churn
         if domain == "churn" and subpath == "sklearn_model":
@@ -241,15 +242,16 @@ def _create_version_from_run(
                     run_id=mlflow_run_id,
                 )
                 return str(mv.version)
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("create_model_version fallback falhou (%s): %s", alt, exc)
         return None
 
 
 def _latest_version(client: Any, model_name: str) -> str | None:
     try:
         versions = client.search_model_versions(f"name='{model_name}'")
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _logger.debug("search_model_versions falhou para latest %s: %s", model_name, exc)
         return None
     if not versions:
         return None

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Type
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ class DomainPlugin:
     name: str
     problem_type: Literal["binary_classification", "recommendation"]
     feature_strategy: type | None
-    input_schema: Type[BaseModel]
+    input_schema: type[BaseModel]
     class_labels: tuple[str, str] | None
     allowed_metrics: frozenset[str]
     pipeline_runner_id: str

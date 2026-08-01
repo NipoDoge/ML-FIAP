@@ -1,20 +1,18 @@
-import logging
-import mlflow
-import pandas as pd
-import os
 import json
+import logging
+import os
+import re
+import shutil
+from datetime import datetime, timezone
+
+import joblib
+import mlflow
+import numpy as np
+import pandas as pd
 from dotenv import load_dotenv
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline as SkPipeline
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
-from core.graphs import Graphs as gr
-from core.configs import settings
-from core.custom_logger import setup_log
-from datetime import datetime
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
@@ -22,13 +20,14 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-import joblib
-import re
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline as SkPipeline
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 
-import shutil
-
+from core.configs import settings
+from core.custom_logger import setup_log
+from core.graphs import Graphs as gr
 from ml_core_ring.mlflow_setup import configure_mlflow_tracking, ensure_mlflow_experiment
-
 from services.pipelines.binary_decision_threshold import labels_from_probability_threshold
 from services.utils import filename_with_suffix, log_training_csv_to_active_run
 
@@ -46,7 +45,7 @@ prandom_state = settings.random_state
 
 logger = logging.getLogger("ml.pipeline")
 pmsg_raise = "Pipeline interrompido"
-pagora = datetime.now().strftime("%Y%m%d_%H%M%S")
+pagora = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 psnapshot_path = os.path.join(settings.path_data, settings.path_logs, pagora)
 
 
@@ -527,7 +526,7 @@ class Baseline:
         try:
             self.data.head(5).to_csv(sample_path, index=False)
             logger.info("Amostra salva em: %s", sample_path)
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.warning("Não foi possível salvar amostra CSV: %s", e)
 
         if str(self.objective).lower() != "churn":
@@ -573,7 +572,7 @@ class Baseline:
         if non_null.empty:
             return False
         unique_values = set(non_null.unique().tolist())
-        return unique_values.issubset({0, 1, 0.0, 1.0, np.int8(0), np.int8(1)})
+        return unique_values.issubset({0, 1, np.int8(0), np.int8(1)})
 
     def _classify_feature_columns(self, x_train: pd.DataFrame) -> dict[str, list[str]]:
         """
@@ -794,7 +793,7 @@ class Baseline:
                     gr.build_lr_coeff_importance_bars(
                         self.model, self._graph_run_stamp, graph_root=self.path_graphs
                     )
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.warning("Importância LR (gráfico) não gerada: %s", e)
 
             try:
@@ -812,7 +811,7 @@ class Baseline:
                     graph_root=self.path_graphs,
                     split_label="train",
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Curvas Precision–Recall não geradas: %s", e)
 
             mlflow.log_params(self.model.get_params())
@@ -940,7 +939,7 @@ class Baseline:
                 logger.info("Modelo, sample e manifest registrados no MLflow.")
             else:
                 logger.warning("Run MLflow ausente; artefatos não foram registrados no tracking.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Erro ao registrar no MLflow: {e}")
 
     # ------------------------------------------------------
@@ -952,37 +951,37 @@ class Baseline:
         Responsabilidade: ingestão e qualidade inicial dos dados.
         """
         self.load_data()
-        logger.debug(f"Dados carregados: {datetime.now() - start_time}")
+        logger.debug(f"Dados carregados: {datetime.now(timezone.utc) - start_time}")
         self.summary_overview()
-        logger.debug(f"Overview gerado: {datetime.now() - start_time}")
+        logger.debug(f"Overview gerado: {datetime.now(timezone.utc) - start_time}")
         self.missing_identifier()
-        logger.debug(f"Identificados Missings: {datetime.now() - start_time}")
+        logger.debug(f"Identificados Missings: {datetime.now(timezone.utc) - start_time}")
         self.pre_processor_churn()
-        logger.debug(f"Pre-processamento: {datetime.now() - start_time}")
+        logger.debug(f"Pre-processamento: {datetime.now(timezone.utc) - start_time}")
         self.target_analysis()
-        logger.debug(f"Análise da target: {datetime.now() - start_time}")
+        logger.debug(f"Análise da target: {datetime.now(timezone.utc) - start_time}")
 
     def _run_eda_and_modeling_prep(self, start_time):
         """
         Responsabilidade: EDA leve e preparação do frame para modelagem.
         """
         self.outlier_analysis()
-        logger.debug(f"Análise de outliers: {datetime.now() - start_time}")
+        logger.debug(f"Análise de outliers: {datetime.now(timezone.utc) - start_time}")
         self.view_data()
-        logger.debug(f"Visualização de dados: {datetime.now() - start_time}")
+        logger.debug(f"Visualização de dados: {datetime.now(timezone.utc) - start_time}")
         self.prepare_modeling_frame()
-        logger.debug(f"Frame de modelagem: {datetime.now() - start_time}")
+        logger.debug(f"Frame de modelagem: {datetime.now(timezone.utc) - start_time}")
         self.split_data()
-        logger.debug(f"Split de dados: {datetime.now() - start_time}")
+        logger.debug(f"Split de dados: {datetime.now(timezone.utc) - start_time}")
 
     def _run_training_and_persistence(self, start_time):
         """
         Responsabilidade: treino, avaliação e persistência de artefatos.
         """
         self.prepare_and_train()
-        logger.debug(f"Treino do baseline: {datetime.now() - start_time}")
+        logger.debug(f"Treino do baseline: {datetime.now(timezone.utc) - start_time}")
         self.save()
-        logger.debug(f"Artefatos salvos: {datetime.now() - start_time}")
+        logger.debug(f"Artefatos salvos: {datetime.now(timezone.utc) - start_time}")
 
     def run(self, start_time):
         """
@@ -1005,7 +1004,7 @@ class Baseline:
                 target_input = os.path.join(self.snapshot_path, self.contract_input_name)
                 shutil.copy(self.current_csv_path, target_input)
                 logger.info("CSV original copiado para snapshot: %s", target_input)
-            except Exception as e:
+            except OSError as e:
                 logger.error(f"Erro ao copiar o CSV original: {e}")
 
         sample_in_snap = os.path.join(self.snapshot_path, self.contract_sample_name)
@@ -1018,7 +1017,7 @@ class Baseline:
                     sample_dst = os.path.join(self.snapshot_path, self.contract_sample_name)
                     shutil.copy(sample_src, sample_dst)
                     logger.info("Sample copiado de pre_processed para snapshot: %s", sample_dst)
-                except Exception as e:
+                except OSError as e:
                     logger.error("Erro ao copiar baseline_sample.csv: %s", e)
 
         manifest_in_snap = os.path.join(self.snapshot_path, self.contract_manifest_name)
@@ -1031,7 +1030,7 @@ class Baseline:
                     manifest_dst = manifest_in_snap
                     shutil.copy(manifest_src, manifest_dst)
                     logger.info("Manifest copiado de pre_processed para snapshot: %s", manifest_dst)
-                except Exception as e:
+                except OSError as e:
                     logger.error("Erro ao copiar manifest.json: %s", e)
 
         target_graphs_path = os.path.join(self.snapshot_path, "graphs")
@@ -1049,7 +1048,7 @@ class Baseline:
 
 if __name__ == "__main__":
     logger = setup_log(psnapshot_path, pagora)
-    start_time = datetime.now()
+    start_time = datetime.now(timezone.utc)
     logger.info(f"Iniciando o pipeline: {start_time}")
     csv_path = os.getenv("BASELINE_CSV_PATH")
     if not csv_path:
@@ -1059,9 +1058,9 @@ if __name__ == "__main__":
     try:
         pipeline.run(start_time)
         pipeline.save_artifacts()
-        logger.debug(f"Artefatos salvos: {datetime.now() - start_time}")
-        end_time = datetime.now() - start_time
+        logger.debug(f"Artefatos salvos: {datetime.now(timezone.utc) - start_time}")
+        end_time = datetime.now(timezone.utc) - start_time
         logger.debug(f"Baseline encerrado em : {end_time}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Erro durante a execução do pipeline: {e}")
         raise ValueError("Pipeline interrompido devido a um erro.")

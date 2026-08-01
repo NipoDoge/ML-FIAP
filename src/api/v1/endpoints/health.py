@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.configs import settings
@@ -28,7 +29,7 @@ def _meta() -> dict[str, str]:
 async def health(db: AsyncSession = Depends(get_session)) -> dict:
     try:
         await db.execute(text("SELECT 1"))
-    except Exception:
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Base de dados indisponível.",

@@ -52,13 +52,13 @@ def metrics_json_for_response_header(metrics: dict | None) -> str:
         if hasattr(o, "tolist") and callable(o.tolist):
             try:
                 return norm(o.tolist())
-            except Exception:
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                _logger.debug("Métricas header: tolist ignorado para %r: %s", type(o), exc)
         if hasattr(o, "item") and callable(o.item):
             try:
                 return norm(o.item())
-            except Exception:
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                _logger.debug("Métricas header: item ignorado para %r: %s", type(o), exc)
         return str(o)
 
     if not metrics:

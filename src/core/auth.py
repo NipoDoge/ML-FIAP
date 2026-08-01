@@ -1,19 +1,20 @@
-from core.configs import settings
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
-from models.users import Users as users_models
-from sqlalchemy.future import select
-from core.security import verify_password
-from datetime import datetime, timedelta
 import os
+from datetime import datetime, timedelta
+
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from pytz import timezone as TZ
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from core.configs import settings
+from core.security import verify_password
+from models.users import Users as users_models
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.project_version}/auth/authenticate")
 
 
-async def authenticate_user(email: str, password: str, db: AsyncSession) -> Optional[users_models]:
+async def authenticate_user(email: str, password: str, db: AsyncSession) -> users_models | None:
 
     async with db as session:
         querie = select(users_models).filter(users_models.email == email)

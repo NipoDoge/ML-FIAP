@@ -1,11 +1,10 @@
-from pathlib import Path
-import os
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, ValidationInfo, field_validator, model_validator
 import logging
-
+import os
+from pathlib import Path
 from typing import Literal
+
+from pydantic import Field, ValidationInfo, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Raiz do repositório (este ficheiro: repo/src/core/configs.py)
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent

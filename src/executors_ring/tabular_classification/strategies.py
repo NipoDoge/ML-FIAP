@@ -6,4 +6,4 @@ from services.pipelines.feature_strategies import (
 )
 from services.pipelines.feature_strategies.base import FeatureStrategy
 
-__all__ = ["FeatureStrategy", "STRATEGY_REGISTRY", "get_class_labels"]
+__all__ = ["STRATEGY_REGISTRY", "FeatureStrategy", "get_class_labels"]

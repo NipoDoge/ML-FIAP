@@ -1,5 +1,7 @@
-import pandas as pd
 import logging
+
+import pandas as pd
+
 from services.pipelines.feature_strategies.base import FeatureStrategy
 
 logger = logging.getLogger(__name__)

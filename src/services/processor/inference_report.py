@@ -68,9 +68,7 @@ def attach_fe_model_comparison_table(merged_metrics: dict, pipeline: Any) -> Non
     for rec in df.round(6).to_dict(orient="records"):
         row = {}
         for k, v in rec.items():
-            if v is None:
-                row[k] = None
-            elif (
+            if v is None or (
                 isinstance(v, (float, int))
                 and isinstance(v, float)
                 and (math.isnan(v) or math.isinf(v))
@@ -283,9 +281,11 @@ def build_inference_report(metrics: dict | None, inference_backend: str) -> Infe
         )
 
     notes = [
-        "O **Baseline** é sklearn simples (contrato + regressão logística). O **FE** acrescenta "
-        "features, comparativo sklearn e MLP no mesmo run; o servido em `/predict` segue "
-        "`inference_backend`.",
+        (
+            "O **Baseline** é sklearn simples (contrato + regressão logística). O **FE** acrescenta "
+            "features, comparativo sklearn e MLP no mesmo run; o servido em `/predict` segue "
+            "`inference_backend`."
+        ),
     ]
 
     if backend == "mlp":

@@ -1,7 +1,7 @@
 """Entrypoint da API na raiz do repo; adiciona ``src/`` ao ``sys.path``."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 _SRC = Path(__file__).resolve().parent / "src"
 if str(_SRC) not in sys.path:
@@ -10,15 +10,14 @@ if str(_SRC) not in sys.path:
 # Vários .joblib (pipelines sklearn do FE) deserializam com referência a ``dill``.
 # Deve constar de docker/requirements-api.txt; sem isto, /predict falha com "No module named 'dill'".
 import dill  # noqa: F401
+from fastapi import FastAPI
 
 import domains  # noqa: F401 — registra DomainPlugin
 import executors_ring  # noqa: F401 — registra TrainBackend
-
-from fastapi import FastAPI
-from src.core.configs import settings
-from src.core.logging_setup import setup_root_logging
-from src.core.logging_api_request import setup_api_request_logging
 from src.api.v1 import api
+from src.core.configs import settings
+from src.core.logging_api_request import setup_api_request_logging
+from src.core.logging_setup import setup_root_logging
 from src.core.middleware.request_record import request_record
 
 setup_root_logging()

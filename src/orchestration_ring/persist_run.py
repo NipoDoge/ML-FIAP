@@ -10,7 +10,7 @@ from __future__ import annotations
 from executors_ring.recommendation.persist_run import persist_recommendation_run
 
 # Re-export tabular (legado platform — migrar na Fase 4)
-from services.processor.airflow_persistence import (  # noqa: E402
+from services.processor.airflow_persistence import (
     deactivate_manual_pipeline_runs_for_objective,
     persist_airflow_baseline_run,
     persist_airflow_feature_engineering_run,

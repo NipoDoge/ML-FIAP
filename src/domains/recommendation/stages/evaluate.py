@@ -13,7 +13,7 @@ from ml_core_ring.run_context import ModelCandidate
 logging.basicConfig(level=logging.INFO)
 
 
-def _candidate_manifest(name: str, params: dict) -> "ArtifactManifest":
+def _candidate_manifest(name: str, params: dict) -> ArtifactManifest:
     artifacts = {}
     metadata = {
         "backend": name,

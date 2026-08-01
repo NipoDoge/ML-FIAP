@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -154,10 +154,10 @@ class TorchEmbeddingRecommender:
         self.training_summary = {
             "best_epoch": best_epoch,
             "best_val_loss": float(best_val_loss),
-            "n_positive_interactions": int(len(positive_pairs)),
-            "n_explicit_negative_interactions": int(len(explicit_negative_pairs)),
-            "n_train_interactions": int(len(train_pairs)),
-            "n_validation_interactions": int(len(val_pairs)),
+            "n_positive_interactions": len(positive_pairs),
+            "n_explicit_negative_interactions": len(explicit_negative_pairs),
+            "n_train_interactions": len(train_pairs),
+            "n_validation_interactions": len(val_pairs),
         }
 
     def _index_catalog(self, train_df: pd.DataFrame) -> None:

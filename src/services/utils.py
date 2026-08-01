@@ -1,8 +1,9 @@
 import logging
 import os
-import pytz
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def filename_with_suffix(filename: str, suffix: str | None) -> str:
     return f"{stem}{suf}{ext}"
 
 
-def to_utc(dt: Optional[datetime]) -> Optional[datetime]:
+def to_utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
 
@@ -91,7 +92,7 @@ def log_training_csv_to_active_run(
     if frame is None:
         try:
             frame = pd.read_csv(resolved)
-        except Exception as exc:
+        except (OSError, pd.errors.ParserError, ValueError) as exc:
             logger.warning("Linhagem MLflow: pd.read_csv falhou para log_input: %s", exc)
             frame = None
 
@@ -109,7 +110,7 @@ def log_training_csv_to_active_run(
             digest=sha,
         )
         mlflow.log_input(dataset, context=context)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning(
             "mlflow.log_input falhou (parâmetros de linhagem já registados): %s",
             exc,

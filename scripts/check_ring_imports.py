@@ -79,9 +79,8 @@ def _module_imports(tree: ast.AST) -> list[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 out.append(alias.name)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                out.append(node.module)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            out.append(node.module)
     return out
 
 
@@ -92,13 +91,13 @@ def _imported_ring(module: str) -> str | None:
         return "orchestration_ring"
     if module.startswith("platform_ring") or ".platform_ring" in module:
         return "platform_ring"
-    if module.startswith("ml_core_ring") or module.startswith("core.ml"):
+    if module.startswith(("ml_core_ring", "core.ml")):
         return "ml_core_ring"
-    if module.startswith("domains_ring") or module.startswith("domains."):
+    if module.startswith(("domains_ring", "domains.")):
         return "domains_ring"
     if module.startswith("services.pipelines"):
         return "executors_ring"
-    if module.startswith("services.processor") or module.startswith("api."):
+    if module.startswith(("services.processor", "api.")):
         return "platform_ring"
     return None
 

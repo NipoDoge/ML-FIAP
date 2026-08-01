@@ -58,7 +58,7 @@ def aggregate_ranking_metrics(
     ground_truth: dict[int, set[int]],
     k: int,
 ) -> dict[str, float]:
-    users = [u for u in recommendations if u in ground_truth and ground_truth[u]]
+    users = [u for u in recommendations if ground_truth.get(u)]
     if not users:
         return {
             "hit_rate": 0.0,

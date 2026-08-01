@@ -6,10 +6,10 @@ import asyncio
 import logging
 from typing import Any
 
-from core.database import Session, engine
 import models._all_models  # noqa: F401
-from models.pipeline_runs import PipelineRuns
+from core.database import Session, engine
 from ml_core_ring.train_backend import TrainBackendResult
+from models.pipeline_runs import PipelineRuns
 from services.utils import utcnow
 
 logger = logging.getLogger(__name__)

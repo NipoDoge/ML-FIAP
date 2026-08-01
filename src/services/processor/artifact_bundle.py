@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import sklearn
+
 from core.configs import settings
 
 logger = logging.getLogger(__name__)

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 import domains  # noqa: F401
 import executors_ring  # noqa: F401
-import pytest
 from ml_core_ring.artifact_manifest import ArtifactManifest
 from ml_core_ring.orchestration_hooks import run_training_for_domain
 from ml_core_ring.run_context import RunContext, RunResult

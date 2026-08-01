@@ -1,19 +1,20 @@
 from sqlalchemy import Column, Integer, String
-from core.generic import modelsGeneric
 from sqlalchemy.orm import relationship
+
+from core.generic import modelsGeneric
 
 
 class Roles(modelsGeneric):
     USER = 1
     ADMINISTRATOR = 2
 
-    ROLES = [
+    ROLES = (
         (USER, "Usuario"),  # Usuário padrão, sem permissões especiais, mas que atua nas rotinas
         (
             ADMINISTRATOR,
-            "Administrador",
+        "Administrador",
         ),  # Administrador do sistema com poder total, incluindo gerenciamento de usuários e configurações.
-    ]
+    )
     __tablename__ = "roles"
     id = Column(Integer, primary_key=True, autoincrement=True)
     description = Column(String, nullable=False)

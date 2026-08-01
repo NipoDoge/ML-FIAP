@@ -16,7 +16,7 @@ def uses_remote_mlflow_tracking(tracking_uri: str | None = None) -> bool:
     from core.configs import settings
 
     uri = (tracking_uri or settings.mlflow_tracking_uri or "").strip()
-    return uri.startswith("http://") or uri.startswith("https://")
+    return uri.startswith(("http://", "https://"))
 
 
 def resolved_mlflow_artifact_dir() -> str:
@@ -37,6 +37,7 @@ def resolved_mlflow_artifact_dir() -> str:
 
 def configure_mlflow_tracking() -> None:
     import mlflow
+
     from core.configs import settings
 
     os.makedirs(resolved_mlflow_artifact_dir(), exist_ok=True)

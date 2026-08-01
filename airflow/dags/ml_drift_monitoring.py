@@ -36,11 +36,12 @@ import logging
 import os
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from airflow import DAG
 from airflow.operators.python import PythonOperator
+
+from airflow import DAG
 
 log = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ def task_export_predictions(**context) -> str:
     out_dir = os.path.join(ML_PROJECT_ROOT, "src", "artifacts", "reports")
     os.makedirs(out_dir, exist_ok=True)
     safe_run_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in context["dag_run"].run_id)
-    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     pred_path = os.path.abspath(
         os.path.join(out_dir, f"drift_predictions_export_{stamp}_{safe_run_id}.csv")
     )
@@ -249,7 +250,7 @@ with DAG(
     dag_id="ml_drift_monitoring",
     description="Export predictions → relatório PSI (drift) vs CSV de referência.",
     default_args=DEFAULT_ARGS,
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
     schedule_interval=None,
     catchup=False,
     tags=["ml", "maintenance", "drift"],

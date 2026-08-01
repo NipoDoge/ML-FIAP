@@ -12,16 +12,16 @@ import json
 import logging
 import math
 import os
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import func, update
 
-from core.configs import settings
-from core.database import Session
-
 # Import side-effect: regista Roles, Users, Predictions, DeployedModels antes de
 # ``PipelineRuns`` resolver ``relationship("Users", ...)``.
 import models._all_models  # noqa: F401
+from core.configs import settings
+from core.database import Session
 from models.pipeline_runs import PipelineRuns
 from services.processor.deployment_service import (
     get_active_deployment,
@@ -41,6 +41,11 @@ from services.utils import utcnow
 logger = logging.getLogger(__name__)
 
 _STRATEGY_MEDIAN = "strategy_monthly_charges_median"
+
+
+async def _load_json_file(path: str) -> dict:
+    raw = await asyncio.to_thread(Path(path).read_text, encoding="utf-8")
+    return json.loads(raw)
 
 
 async def deactivate_manual_pipeline_runs_for_objective(objective: str) -> None:
@@ -152,8 +157,7 @@ async def reserve_airflow_fe_pipeline_run(
     logs ``src/data/old/<ts>_fe<id>/pipeline_<ts>.txt`` (só texto; artefactos pesados vêm ZIP MLflow).
     """
     resolved_manifest_path = os.path.abspath(manifest_path)
-    with open(resolved_manifest_path, encoding="utf-8") as f:
-        baseline_manifest = json.load(f)
+    baseline_manifest = await _load_json_file(resolved_manifest_path)
     csv_baseline = baseline_manifest.get("output_sample_csv_stable")
     if not csv_baseline:
         raise ValueError("Manifest inválido: campo 'output_sample_csv_stable' ausente.")
@@ -203,8 +207,7 @@ async def persist_airflow_feature_engineering_run(
 
     metric = normalize_optimization_metric(optimization_metric)
     resolved_manifest_path = os.path.abspath(manifest_path)
-    with open(resolved_manifest_path, encoding="utf-8") as f:
-        baseline_manifest = json.load(f)
+    baseline_manifest = await _load_json_file(resolved_manifest_path)
 
     csv_baseline = baseline_manifest.get("output_sample_csv_stable")
     if not csv_baseline:

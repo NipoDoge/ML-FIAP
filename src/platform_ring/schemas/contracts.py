@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,17 +16,17 @@ class PipelineRunResponse(BaseModel):
     objective: str
     status: str
     original_filename: str
-    model_path: Optional[str] = None
-    csv_output_path: Optional[str] = None
-    metrics: Optional[dict] = None
-    error_message: Optional[str] = None
+    model_path: str | None = None
+    csv_output_path: str | None = None
+    metrics: dict | None = None
+    error_message: str | None = None
     active: bool = Field(default=True, description="Run lógico ativo no painel interno.")
     inference_backend: str = Field(
         default="sklearn",
         description="Backend servido em /predict para este run: 'sklearn' (joblib) ou 'mlp' (PyTorch).",
     )
-    created_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    completed_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -37,13 +37,13 @@ class MetricSnapshot(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    accuracy: Optional[float] = Field(
+    accuracy: float | None = Field(
         default=None, description="Acurácia no conjunto de teste do run."
     )
-    precision: Optional[float] = None
-    recall: Optional[float] = None
-    f1: Optional[float] = None
-    roc_auc: Optional[float] = None
+    precision: float | None = None
+    recall: float | None = None
+    f1: float | None = None
+    roc_auc: float | None = None
 
 
 _INFERENCE_SCOPE_NOTE = (
@@ -73,15 +73,15 @@ class ServedModelPredict(BaseModel):
 class TrainingSelectionSummaryPredict(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    optimization_metric: Optional[str] = None
-    best_cv_score: Optional[float] = Field(
+    optimization_metric: str | None = None
+    best_cv_score: float | None = Field(
         default=None, description="Melhor média de CV na seleção interna."
     )
-    classification_decision_threshold_for_holdout_metrics: Optional[float] = Field(
+    classification_decision_threshold_for_holdout_metrics: float | None = Field(
         default=None,
         description="Threshold usado nas métricas de holdout registadas para o modelo FE servido.",
     )
-    sklearn_classifier_from_cv_study: Optional[str] = Field(
+    sklearn_classifier_from_cv_study: str | None = Field(
         default=None,
         description="Nome do classificador sklearn destacado no estudo de CV (pode coincidir com o promovido).",
     )
@@ -91,13 +91,13 @@ class PyTorchMLPExperiment(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     holdout_row: dict[str, Any] = Field(default_factory=dict)
-    training_summary: Optional[dict[str, Any]] = None
+    training_summary: dict[str, Any] | None = None
 
 
 class ExperimentationPredict(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    pytorch_mlp: Optional[PyTorchMLPExperiment] = None
+    pytorch_mlp: PyTorchMLPExperiment | None = None
 
 
 class ComparisonPredict(BaseModel):
@@ -116,11 +116,11 @@ class BaselinePredictBlock(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    baseline_pipeline_run_id: Optional[int] = None
+    baseline_pipeline_run_id: int | None = None
     model_selection: str = Field(default="Regressão Logística")
-    role: Optional[str] = None
-    classification_decision_threshold: Optional[float] = None
-    description: Optional[str] = None
+    role: str | None = None
+    classification_decision_threshold: float | None = None
+    description: str | None = None
     holdout_metrics: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -135,12 +135,12 @@ class InferenceReport(BaseModel):
     scope_note: str = Field(default=_INFERENCE_SCOPE_NOTE)
     served_model: ServedModelPredict
     training_selection_summary: TrainingSelectionSummaryPredict
-    holdout_metrics_served_model: Optional[MetricSnapshot] = Field(
+    holdout_metrics_served_model: MetricSnapshot | None = Field(
         default=None,
         description="Métricas de teste (holdout) do modelo efectivamente servido neste domínio.",
     )
     comparison: ComparisonPredict
-    baseline: Optional[BaselinePredictBlock] = None
+    baseline: BaselinePredictBlock | None = None
     notes: list[str] = Field(default_factory=list)
     summary_lines: list[str] = Field(default_factory=list)
 
@@ -153,15 +153,15 @@ class PredictResponse(BaseModel):
         default=0,
         description="Classe prevista (tabular) ou primeiro item_id (recomendação, referência).",
     )
-    probability: Optional[float] = Field(
+    probability: float | None = Field(
         default=None,
         description="Probabilidade estimada da classe positiva em percentual (0–100), quando disponível.",
     )
-    probability_display: Optional[str] = Field(
+    probability_display: str | None = Field(
         default=None,
         description="Representação legível da probabilidade (ex.: '78.29%').",
     )
-    recommended_items: Optional[list[int]] = Field(
+    recommended_items: list[int] | None = Field(
         default=None,
         description="Lista de item_id recomendados (domínio recommendation).",
     )
@@ -180,30 +180,30 @@ class DeployedModelResponse(BaseModel):
     domain: str
     pipeline_run_id: int
     status: str
-    promoted_at: Optional[datetime] = None
-    promoted_by_user_id: Optional[int] = None
-    metrics_snapshot: Optional[dict] = None
-    pipeline_type: Optional[str] = Field(
+    promoted_at: datetime | None = None
+    promoted_by_user_id: int | None = None
+    metrics_snapshot: dict | None = None
+    pipeline_type: str | None = Field(
         default=None,
         description="Tipo do pipeline promovido (feature_engineering, recommendation, …).",
     )
-    mlflow_registry_model: Optional[str] = Field(
+    mlflow_registry_model: str | None = Field(
         default=None,
         description="Nome do modelo no MLflow Model Registry (side-effect Fase 6).",
     )
-    mlflow_registry_version: Optional[str] = Field(
+    mlflow_registry_version: str | None = Field(
         default=None,
         description="Versão promovida a Production no Registry.",
     )
-    mlflow_registry_stage: Optional[str] = Field(
+    mlflow_registry_stage: str | None = Field(
         default=None,
         description="Stage final no Registry (tipicamente Production).",
     )
-    mlflow_registry_run_id: Optional[str] = Field(
+    mlflow_registry_run_id: str | None = Field(
         default=None,
         description="MLflow run_id associado à versão Registry.",
     )
-    mlflow_registry_warning: Optional[str] = Field(
+    mlflow_registry_warning: str | None = Field(
         default=None,
         description="Aviso se o side-effect Registry falhou (promote na BD mantém-se).",
     )
@@ -217,5 +217,5 @@ class TriggerDagResponse(BaseModel):
     dag_id: str
     domain: str
     objective: str = Field(description="Alias de domain (tabular).")
-    csv_path: Optional[str] = None
+    csv_path: str | None = None
     message: str

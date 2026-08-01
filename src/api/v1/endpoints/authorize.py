@@ -1,15 +1,16 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
-from models.users import Users as users_models
-
-from schemas import users_schemas as users_schemas
-from core.deps import get_session, get_current_user
-from sqlalchemy.ext.asyncio import AsyncSession
-from services.auth import auth_service as auth_service
-from sqlalchemy.exc import IntegrityError
-from core.auth import _generate_access_token
 import logging
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.auth import _generate_access_token
+from core.deps import get_current_user, get_session
+from models.users import Users as users_models
+from schemas import users_schemas
+from services.auth import auth_service
 
 logger = logging.getLogger(__name__)
 

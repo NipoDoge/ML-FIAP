@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from src.schemas.users_schemas import users_create, users_update, usersGetData
 from src.schemas.roles_schemas import role, role_update
+from src.schemas.users_schemas import users_create, users_update, usersGetData
 
 
 class TestUsersSchemas:

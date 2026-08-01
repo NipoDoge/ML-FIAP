@@ -1,27 +1,27 @@
+from datetime import datetime, timezone
+
 from pydantic import BaseModel as SC_BaseModel
-from typing import Optional
-from pydantic import EmailStr
-from datetime import datetime
+from pydantic import EmailStr, Field
 
 
 class users(SC_BaseModel):
-    id: Optional[int] = None
+    id: int | None = None
     name: str
     email: EmailStr
-    created_at: Optional[datetime] = datetime.now()
-    active: Optional[bool] = True
-    role_id: Optional[int] = 1
+    created_at: datetime | None = Field(default_factory=lambda: datetime.now(timezone.utc))
+    active: bool | None = True
+    role_id: int | None = 1
 
     class Config:
         from_attributes = True
 
 
 class users_update(users):
-    name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
-    active: Optional[bool] = True
-    role_id: Optional[int] = None
+    name: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
+    active: bool | None = True
+    role_id: int | None = None
 
 
 class users_create(users):
@@ -29,8 +29,8 @@ class users_create(users):
 
 
 class usersGetData(SC_BaseModel):
-    id: Optional[int] = None
-    name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    active: Optional[bool] = True
-    role: Optional[str] = None
+    id: int | None = None
+    name: str | None = None
+    email: EmailStr | None = None
+    active: bool | None = True
+    role: str | None = None

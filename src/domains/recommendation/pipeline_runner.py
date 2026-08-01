@@ -7,16 +7,16 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from ml_core_ring.mlflow_setup import ensure_mlflow_experiment
 import mlflow
 import pandas as pd
 
 from core.configs import settings
-from ml_core_ring.artifact_manifest import ArtifactManifest
-from ml_core_ring.pipeline_runner import PipelineRunner, register_runner
-from ml_core_ring.run_context import ModelCandidate, RunContext
 from domains.recommendation.metrics.ranking import aggregate_ranking_metrics
 from domains.recommendation.models.factory import create_model
+from ml_core_ring.artifact_manifest import ArtifactManifest
+from ml_core_ring.mlflow_setup import ensure_mlflow_experiment
+from ml_core_ring.pipeline_runner import PipelineRunner, register_runner
+from ml_core_ring.run_context import ModelCandidate, RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -292,7 +292,7 @@ class RecommendationPipelineRunner(PipelineRunner):
                         f"runs:/{run.info.run_id}/pytorch_model",
                         "tc02_recommender",
                     )
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001
                     # Cliente MLflow 3.x vs servidor 2.x: registry/logged-models pode falhar;
                     # artefactos .pt já foram registados — treino não deve abortar.
                     logger.warning(

@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import pandas as pd
 
+from executors_ring.tabular_classification.mlp_inference import load_mlp_bundle, predict_with_mlp
 from ml_core_ring.artifact_manifest import ArtifactManifest
 from ml_core_ring.inference_engine import register_engine
 from ml_core_ring.paths import resolve_shared_artifact_path
 from ml_core_ring.prediction_result import PredictionResult
-
-from executors_ring.tabular_classification.mlp_inference import load_mlp_bundle, predict_with_mlp
 
 
 @register_engine

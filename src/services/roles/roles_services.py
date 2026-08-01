@@ -1,10 +1,9 @@
-from schemas import roles_schemas as roles_schemas
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from typing import List
-
 from models.roles import Roles as roles_models
+from schemas import roles_schemas
 
 
 async def register_role(role: roles_schemas.role, db: AsyncSession) -> roles_models:
@@ -17,11 +16,11 @@ async def register_role(role: roles_schemas.role, db: AsyncSession) -> roles_mod
         return new_role
 
 
-async def select_all_roles(db: AsyncSession) -> List[roles_schemas.role]:
+async def select_all_roles(db: AsyncSession) -> list[roles_schemas.role]:
     async with db as session:
         querie = select(roles_models).filter(roles_models.active.is_(True))
         resultset = await session.execute(querie)
-        roles: List[roles_schemas.role] = resultset.scalars().unique().all()
+        roles: list[roles_schemas.role] = resultset.scalars().unique().all()
         return roles
 
 
